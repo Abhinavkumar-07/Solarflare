@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import Sidebar from "../components/Sidebar";
+import { useNavigate } from "react-router-dom";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
@@ -7,6 +9,8 @@ import {
   Settings, Info, Calendar, Clock, Search, ZoomIn, Maximize2, ArrowUpRight,
   AlertTriangle, Sun,
 } from "lucide-react";
+import { COLORS as THEME_COLORS, PAGE_STYLE, MAIN_STYLE, FONT } from "../theme";
+import { SIMILAR_EVENTS } from "../data/dashboardData";
 
 /* ────────────────────────────────────────────────────────────────────────
    SolarGuard — ISRO BAH 2026 dashboard
@@ -17,36 +21,10 @@ import {
    3-panel analysis row, genome heatmap + memory table + forecast gauge.
    ──────────────────────────────────────────────────────────────────────── */
 
-// ── Design tokens (read directly off the approved screenshot) ──────────
-const COLORS = {
-  bg: "#0a0e1a",
-  panel: "#0f1626",
-  panelBorder: "#1c2740",
-  navActive: "#1d4ed8",
-  textPrimary: "#f1f5f9",
-  textSecondary: "#94a3b8",
-  textMuted: "#5b6b85",
-  accentGreen: "#22d97a",
-  accentBlue: "#38bdf8",
-  accentOrange: "#fb923c",
-  accentPurple: "#c084fc",
-  accentTeal: "#2dd4bf",
-  accentYellow: "#facc15",
-  accentRed: "#f87171",
-  gridLine: "#1c2740",
-};
+// ── Design tokens — pulled from shared theme ──────────────────────────
+const COLORS = THEME_COLORS;
 
-const NAV_ITEMS = [
-  { icon: LayoutDashboard, label: "Dashboard", active: true },
-  { icon: Activity, label: "Light Curves" },
-  { icon: TrendingUp, label: "Hardening & Forecast" },
-  { icon: Dna, label: "Flare Genome" },
-  { icon: Database, label: "Solar Memory DB" },
-  { icon: Bell, label: "Alerts" },
-  { icon: FileText, label: "Reports" },
-  { icon: Settings, label: "Settings" },
-  { icon: Info, label: "About" },
-];
+
 
 // ── Synthetic-but-physically-shaped data generator ──────────────────────
 // Mirrors the real shape of June 3, 2026 data: quiet baseline, a flare
@@ -131,13 +109,7 @@ function genomeColor(v) {
   }
 }
 
-const SIMILAR_EVENTS = [
-  { rank: 1, date: "2026-06-18 12:22:00", cls: "C2.4", score: 0.92 },
-  { rank: 2, date: "2026-06-18 11:02:00", cls: "C1.8", score: 0.88 },
-  { rank: 3, date: "2026-06-03 09:41:00", cls: "C3.1", score: 0.84 },
-  { rank: 4, date: "2026-06-03 10:15:00", cls: "B9.7", score: 0.79 },
-  { rank: 5, date: "2024-09-02 08:50:00", cls: "B7.5", score: 0.74 },
-];
+
 
 function classColor(cls) {
   if (cls.startsWith("X")) return COLORS.accentRed;
@@ -222,6 +194,9 @@ function CustomTooltip({ active, payload, label, unit }) {
 // ── Main dashboard ───────────────────────────────────────────────────────
 
 export default function SolarGuardDashboard() {
+  const navigate = useNavigate();
+    const [date, setDate] = useState("2026-06-03");
+  const [time, setTime] = useState("12:45:30");
   const [tick, setTick] = useState(0);
   const [isLive, setIsLive] = useState(true);
   const intervalRef = useRef(null);
@@ -232,12 +207,17 @@ export default function SolarGuardDashboard() {
     return () => clearInterval(intervalRef.current);
   }, [isLive]);
 
+  // Compute a seed offset from the selected date and time to make charts update when date selectors change
+  const timeSeed = useMemo(() => {
+    return Array.from(date + time).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  }, [date, time]);
+
   // Live mode subtly advances the seed so the curves drift slightly each
   // tick (new noise, same overall flare shape) — visible movement without
   // the chart jumping around unrealistically.
   const { soft, hard, peakIdx, hardPeakIdx } = useMemo(
-    () => generateFlareSeries(64, 7 + tick),
-    [tick]
+    () => generateFlareSeries(64, 7 + tick + timeSeed),
+    [tick, timeSeed]
   );
   const timeLabels = useMemo(() => buildTimeLabels(64), []);
   const genome = useMemo(() => generateGenomeMatrix(3), []);
@@ -271,99 +251,16 @@ export default function SolarGuardDashboard() {
   const zScore = 0.73;
 
   return (
-    <div
-      style={{
-        background: COLORS.bg,
-        color: COLORS.textPrimary,
-        fontFamily:
-          "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-        minHeight: "100vh",
-        display: "flex",
-      }}
-    >
+    <div style={PAGE_STYLE}>
       {/* ── Left nav rail ── */}
-      <aside
-        style={{
-          width: 232,
-          flexShrink: 0,
-          borderRight: `1px solid ${COLORS.panelBorder}`,
-          padding: "20px 14px",
-          display: "flex",
-          flexDirection: "column",
-          background: "#0c1220",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 6px 18px" }}>
-          <div
-            style={{
-              width: 38, height: 38, borderRadius: 10,
-              background: "linear-gradient(135deg, #fbbf24, #f97316)",
-              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-            }}
-          >
-            <Sun size={20} color="#1a1206" strokeWidth={2.5} />
-          </div>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.1 }}>SolarGuard</div>
-          </div>
-        </div>
-        <div style={{ fontSize: 10.5, color: COLORS.textSecondary, padding: "0 6px 4px", lineHeight: 1.5 }}>
-          Solar Flare Forecasting &amp; Nowcasting System
-        </div>
-        <div style={{ fontSize: 10.5, color: COLORS.accentGreen, padding: "0 6px 18px", fontWeight: 600 }}>
-          Aditya-L1 SoLEXS + HEL1OS
-        </div>
+      <Sidebar activePage="Dashboard" />
 
-        <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => {}}
-              style={{
-                display: "flex", alignItems: "center", gap: 11,
-                padding: "9px 12px", borderRadius: 8, border: "none",
-                background: item.active ? COLORS.navActive : "transparent",
-                color: item.active ? "#fff" : COLORS.textSecondary,
-                fontSize: 13, fontWeight: item.active ? 600 : 500,
-                cursor: "pointer", textAlign: "left", width: "100%",
-                transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) => { if (!item.active) e.currentTarget.style.background = "#141d33"; }}
-              onMouseLeave={(e) => { if (!item.active) e.currentTarget.style.background = "transparent"; }}
-            >
-              <item.icon size={16} strokeWidth={2} />
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        <div style={{ flex: 1 }} />
-
-        <div
-          style={{
-            background: "#0f1d18", border: `1px solid ${COLORS.accentGreen}33`,
-            borderRadius: 10, padding: "14px 14px", marginTop: 16,
-          }}
-        >
-          <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.accentGreen, marginBottom: 8 }}>
-            About SolarGuard
-          </div>
-          <div style={{ fontSize: 11, color: COLORS.textSecondary, lineHeight: 1.6, marginBottom: 10 }}>
-            AI-powered nowcasting and forecasting of solar flares using spectral hardening, flare genome and similarity search from historical events.
-          </div>
-          <div style={{ fontSize: 11, color: COLORS.accentGreen, fontWeight: 600 }}>
-            Designed for ISRO Hackathon 2025
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main content ── */}
-      <main style={{ flex: 1, padding: "20px 24px", minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+      <main style={{ ...MAIN_STYLE, padding: "20px 24px", gap: 16, display: "flex", flexDirection: "column" }}>
         {/* Top bar */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-            <FieldPicker icon={Calendar} label="Selected Date" value="2026-06-03" />
-            <FieldPicker icon={Clock} label="Time (IST)" value="12:45:30" />
+            <FieldPicker icon={Calendar} label="Selected Date" value={date} type="date" onChange={setDate} />
+            <FieldPicker icon={Clock} label="Time (IST)" value={time} type="time" onChange={setTime} />
             <button
               onClick={() => setIsLive((v) => !v)}
               style={{
@@ -394,7 +291,7 @@ export default function SolarGuardDashboard() {
         </div>
 
         {/* Stat cards row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
+        <div className="sg-grid-5" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
           <StatCard icon={Sun} iconColor={COLORS.accentYellow} label="Current Flare Class" value="C-Class" valueColor={COLORS.accentYellow} sub="Predicted Class" />
           <StatCard icon={TrendingUp} iconColor={COLORS.accentPurple} label="Flare Probability" value={`${currentProb}%`} valueColor={COLORS.accentPurple} sub="Probability of M or X class" />
           <StatCard icon={Search} iconColor={COLORS.accentTeal} label="Spectral Hardening Ratio" value={currentRatio} valueColor={COLORS.accentTeal} sub="Hard / Soft Flux Ratio" />
@@ -403,7 +300,7 @@ export default function SolarGuardDashboard() {
         </div>
 
         {/* Dual light curve row */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, height: 230 }}>
+        <div className="sg-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, height: 230 }}>
           <Panel
             title="SoLEXS Soft X-ray Light Curve (0.5 – 4 keV)"
             icon={Activity}
@@ -440,7 +337,7 @@ export default function SolarGuardDashboard() {
         </div>
 
         {/* Middle 3-panel row: ratio, forecast, nowcast+gauge */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, height: 230 }}>
+        <div className="sg-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, height: 230 }}>
           <Panel title="Spectral Hardening Ratio (Hard / Soft)" icon={TrendingUp} accent={COLORS.accentGreen}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={hardeningData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
@@ -495,7 +392,7 @@ export default function SolarGuardDashboard() {
         </div>
 
         {/* Bottom row: genome heatmap, similar events table, alert card */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 0.85fr", gap: 14, flex: 1, minHeight: 230 }}>
+        <div className="sg-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 0.85fr", gap: 14, flex: 1, minHeight: 230 }}>
           <Panel title="Flare Genome (64-D Fingerprint)" icon={Dna} accent={COLORS.accentBlue}>
             <GenomeHeatmap matrix={genome} />
           </Panel>
@@ -537,7 +434,7 @@ export default function SolarGuardDashboard() {
 
 // ── Sub-components ──────────────────────────────────────────────────────
 
-function FieldPicker({ icon: Icon, label, value }) {
+function FieldPicker({ icon: Icon, label, value, type="text", onChange }) {
   return (
     <div>
       <div style={{ fontSize: 10.5, color: COLORS.textSecondary, marginBottom: 4 }}>{label}</div>
@@ -549,7 +446,12 @@ function FieldPicker({ icon: Icon, label, value }) {
         }}
       >
         <Icon size={13} color={COLORS.textMuted} />
-        {value}
+        <input 
+          type={type} 
+          value={value} 
+          onChange={(e) => onChange && onChange(e.target.value)}
+          style={{ background: "transparent", border: "none", outline: "none", color: "inherit", width: "100%" }}
+        />
       </div>
     </div>
   );

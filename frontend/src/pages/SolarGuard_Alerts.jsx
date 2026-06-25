@@ -1,4 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
+import Sidebar from "../components/Sidebar";
+import { useNavigate } from 'react-router-dom';
+import { toast } from "../components/Toast";
+import { COLORS } from "../theme";
+import { TIMELINE, ALERT_DETAILS, ALERT_HISTORY, REGION_INFO } from "../data/alertsData";
 
 /* ================================================================
    SolarGuard – Alerts Page (High Fidelity & Fully Responsive)
@@ -14,7 +19,7 @@ const styles = `
     display: flex;
     min-height: 100vh;
     font-family: 'Inter', system-ui, sans-serif;
-    background: #050810;
+    background: #080c18;
     color: #e2e8f0;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
@@ -39,21 +44,9 @@ const styles = `
   .text-red { color: #ef4444; }
   .text-light-red { color: #f87171; }
 
-  /* Sidebar */
+  /* Sidebar is handled by the shared Sidebar component */
   .sg-sidebar {
-    width: 220px;
-    min-width: 220px;
-    background: #0a0e1a;
-    border-right: 1px solid #1a233a;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 100;
-    overflow-y: auto;
-    transition: transform 0.3s ease;
+    display: none; /* legacy — kept for backward compat but not used */
   }
   
   .sg-sidebar-hdr { padding: 16px 14px 12px; border-bottom: 1px solid #1a233a; }
@@ -69,7 +62,7 @@ const styles = `
   /* Main Content Area */
   .sg-main {
     flex: 1;
-    margin-left: 220px;
+    margin-left: 0px;
     padding: 0 24px 24px;
     min-width: 0;
     display: flex;
@@ -232,54 +225,21 @@ function Sparkline({ data, color, height = 30 }) {
 
 // ─── Data ───────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { icon:'fas fa-th-large',    label:'Dashboard' },
-  { icon:'fas fa-chart-line',  label:'Light Curves' },
-  { icon:'fas fa-chart-bar',   label:'Hardening & Forecast' },
-  { icon:'fas fa-dna',         label:'Flare Genome' },
-  { icon:'fas fa-database',    label:'Solar Memory DB' },
-  { icon:'fas fa-bell',        label:'Alerts', active:true },
-  { icon:'fas fa-file-alt',    label:'Reports' },
-  { icon:'fas fa-cog',         label:'Settings' },
-  { icon:'fas fa-info-circle', label:'About' },
+  { icon:'fas fa-th-large',    label:'Dashboard',            path:'/' },
+  { icon:'fas fa-chart-line',  label:'Light Curves',          path:'/light-curves' },
+  { icon:'fas fa-chart-bar',   label:'Hardening & Forecast',  path:'/hardening' },
+  { icon:'fas fa-dna',         label:'Flare Genome',          path:'/genome' },
+  { icon:'fas fa-database',    label:'Solar Memory DB',       path:'/memory-db' },
+  { icon:'fas fa-bell',        label:'Alerts', active:true,   path:'/alerts' },
+  { icon:'fas fa-file-alt',    label:'Reports',               path:'/reports' },
+  { icon:'fas fa-cog',         label:'Settings',              path:'/settings' },
+  { icon:'fas fa-info-circle', label:'About',                 path:'/about' },
 ];
 
-const TIMELINE = [
-  { time:'12:00:00', title:'Normal', desc:'All parameters within normal range', col:'#22c55e', past:true },
-  { time:'12:08:20', title:'Elevated Activity', desc:'Spectral hardening ratio exceeded threshold', col:'#fbbf24', past:true },
-  { time:'12:11:05', title:'Forecast Trigger', desc:'Flare probability > 30%', col:'#f59e0b', past:true },
-  { time:'12:15:30', title:'Watch Issued', desc:'M-class flare possible (Lead time: 10 min)', col:'#ef4444', past:true },
-  { time:'12:25:30', title:'Potential Peak (Est.)', desc:'Estimated time of flare peak', col:'#8892a6', past:false },
-  { time:'12:35:30', title:'Event End (Est.)', desc:'Activity expected to return to normal', col:'#8892a6', past:false },
-];
 
-const ALERT_DETAILS = [
-  { lbl:'Alert ID', val:'ALT-20240902-121530' },
-  { lbl:'Alert Type', val:'Watch' },
-  { lbl:'Predicted Class', val:'M-Class' },
-  { lbl:'Probability', val:'44.7%' },
-  { lbl:'Lead Time', val:'10 min' },
-  { lbl:'Issued At', val:'2024-09-02 12:15:30 IST' },
-  { lbl:'Data Source', val:'SoLEXS + HEL1OS' },
-  { lbl:'Status', val:'Active', badge:'#fbbf24' },
-];
-
-const ALERT_HISTORY = [
-  { t:'2024-09-02 12:15:30', ty:'Watch', tyC:'#f59e0b', c:'M-Class', cC:'#f59e0b', p:'44.7%', l:'10 min', s:'Active', sC:'#fbbf24', bC:'rgba(251,191,36,0.1)' },
-  { t:'2024-09-01 08:32:10', ty:'Elevated', tyC:'#fbbf24', c:'C-Class', cC:'#fbbf24', p:'28.3%', l:'-', s:'Ended', sC:'#8892a6', bC:'rgba(255,255,255,0.05)' },
-  { t:'2024-08-31 15:45:22', ty:'Warning', tyC:'#ef4444', c:'M-Class', cC:'#f59e0b', p:'62.1%', l:'12 min', s:'Ended', sC:'#8892a6', bC:'rgba(255,255,255,0.05)' },
-  { t:'2024-08-30 11:20:05', ty:'Watch', tyC:'#f59e0b', c:'C-Class', cC:'#fbbf24', p:'33.6%', l:'8 min', s:'Ended', sC:'#8892a6', bC:'rgba(255,255,255,0.05)' },
-  { t:'2024-08-29 07:10:15', ty:'Normal', tyC:'#22c55e', c:'B-Class', cC:'#3b82f6', p:'12.4%', l:'-', s:'Ended', sC:'#8892a6', bC:'rgba(255,255,255,0.05)' },
-];
-
-const REGION_INFO = [
-  { l:'Region ID', v:'AR3786', vc:'#e2e8f0' },
-  { l:'Location', v:'N15E23', vc:'#e2e8f0' },
-  { l:'Area', v:'980 MH', vc:'#e2e8f0' },
-  { l:'Magnetic Class', v:'Beta-Gamma-Delta', vc:'#e2e8f0' },
-  { l:'Flare Potential', v:'High', vc:'#f59e0b' },
-];
 
 export default function SolarAlerts() {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -296,43 +256,9 @@ export default function SolarAlerts() {
         )}
 
         {/* ──── Sidebar ──── */}
-        <aside className={`sg-sidebar ${sidebarOpen ? 'open' : ''}`}>
-          <div className="sg-sidebar-hdr">
-            <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
-              <SunLogo />
-              <div style={{ display:'flex', flexDirection:'column', minWidth:0 }}>
-                <span style={{ fontSize:'1.2rem', fontWeight:700, color:'#fff', letterSpacing:.5, lineHeight:1.2 }}>SolarGuard</span>
-                <span style={{ fontSize:'.75rem', color:'#8892a6', lineHeight:1.3, marginTop:3 }}>Solar Flare Forecasting &amp;<br/>Nowcasting System</span>
-                <span style={{ fontSize:'.65rem', color:'#22c55e', marginTop:3, fontWeight:500, opacity:.8 }}>Aditya-L1 (SoLEXS + HEL1OS)</span>
-              </div>
-            </div>
-          </div>
-          <nav className="sg-nav-wrap">
-            {NAV_ITEMS.map((n,i) => (
-              <button key={i} className={`sg-nav-btn ${n.active ? 'active' : ''}`}>
-                <i className={n.icon} style={{ width:18, textAlign:'center', fontSize:'.85rem' }} />
-                <span>{n.label}</span>
-              </button>
-            ))}
-          </nav>
-          <div style={{ padding:'16px 14px', borderTop:'1px solid #1a233a', display:'flex', flexDirection:'column', gap:'12px' }}>
-            <div>
-              <div style={{ fontSize:'.75rem', color:'#8892a6' }}>System Status</div>
-              <div style={{ fontSize:'.8rem', color:'#e2e8f0', fontWeight:500, display:'flex', alignItems:'center', gap:6 }}><span style={{ width:8, height:8, borderRadius:'50%', background:'#22c55e' }}/> Normal</div>
-            </div>
-            <div>
-              <div style={{ fontSize:'.75rem', color:'#8892a6' }}>Data Source</div>
-              <div style={{ fontSize:'.8rem', color:'#22c55e', fontWeight:500 }}>Aditya-L1 (SoLEXS + HEL1OS)</div>
-            </div>
-            <div>
-              <div style={{ fontSize:'.75rem', color:'#8892a6' }}>Last Updated</div>
-              <div style={{ fontSize:'.75rem', color:'#8892a6', fontWeight:500 }}>2024-09-02 12:45:30 IST</div>
-            </div>
-          </div>
-        </aside>
+        <Sidebar activePage="Alerts" />
 
-        {/* ──── Main Content ──── */}
-        <main className="sg-main">
+      <main className="sg-main">
           
           <header className="sg-header">
             <div style={{ display:'flex', alignItems:'center', gap:16 }}>
@@ -345,10 +271,10 @@ export default function SolarAlerts() {
               </div>
             </div>
             <div className="sg-hdr-right">
-              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 14px', border:'1px solid #263352', borderRadius:8, fontSize:'.75rem', color:'#8892a6' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 14px', border:'1px solid #263352', borderRadius:8, fontSize:'.75rem', color:'#8892a6', cursor:'pointer' }} onClick={() => toast("Open Date Picker")}>
                 <i className="far fa-calendar-alt"/> 2024-09-02 <i className="fas fa-chevron-down" style={{fontSize:'.6rem'}}/>
               </div>
-              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 14px', border:'1px solid #263352', borderRadius:8, fontSize:'.75rem', color:'#8892a6' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 14px', border:'1px solid #263352', borderRadius:8, fontSize:'.75rem', color:'#8892a6', cursor:'pointer' }} onClick={() => toast("Open Time Picker")}>
                 <i className="far fa-clock"/> 12:45:30 IST <i className="fas fa-chevron-down" style={{fontSize:'.6rem'}}/>
               </div>
               <button style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 20px', background:'#3b82f6', border:'none', borderRadius:8, fontSize:'.75rem', color:'#fff', fontWeight:600, cursor:'pointer' }}>
@@ -486,7 +412,7 @@ export default function SolarAlerts() {
                 </table>
               </div>
               <div style={{ textAlign:'center', padding:'12px', borderTop:'1px solid rgba(255,255,255,0.03)' }}>
-                <a href="#" style={{ fontSize:'.75rem', color:'#3b82f6', textDecoration:'none', fontWeight:500 }}>View All Alerts <i className="fas fa-arrow-right" style={{fontSize:'.65rem', marginLeft:4}}/></a>
+                <a href="#" style={{ fontSize:'.75rem', color:'#3b82f6', textDecoration:'none', fontWeight:500 }} onClick={(e) => { e.preventDefault(); toast("Viewing all alerts..."); }}>View All Alerts <i className="fas fa-arrow-right" style={{fontSize:'.65rem', marginLeft:4}}/></a>
               </div>
             </div>
 
@@ -513,7 +439,7 @@ export default function SolarAlerts() {
                 </div>
               </div>
               <div style={{ textAlign:'center', padding:'12px', borderTop:'1px solid rgba(255,255,255,0.03)' }}>
-                <a href="#" style={{ fontSize:'.75rem', color:'#3b82f6', textDecoration:'none', fontWeight:500 }}>View Region Details</a>
+                <a href="#" style={{ fontSize:'.75rem', color:'#3b82f6', textDecoration:'none', fontWeight:500 }} onClick={(e) => { e.preventDefault(); toast("Viewing region details..."); }}>View Region Details</a>
               </div>
             </div>
 

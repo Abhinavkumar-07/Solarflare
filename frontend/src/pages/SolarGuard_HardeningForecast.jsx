@@ -1,4 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
+import Sidebar from "../components/Sidebar";
+import { useNavigate } from "react-router-dom";
+import { toast } from "../components/Toast";
 import {
   Sun,
   LayoutDashboard,
@@ -35,77 +38,22 @@ import {
   ReferenceLine,
   LabelList,
 } from "recharts";
+import { PAGE_STYLE, MAIN_STYLE, FONT } from "../theme";
+import { 
+  hardeningData as syncHardening, 
+  energyData as syncEnergy, 
+  timeTicks as syncTicks, 
+  latestForecasts as syncForecasts, 
+  keyIndicators as syncIndicators, 
+  features as syncFeatures 
+} from "../data/forecastData";
+import forecastService from "../services/forecastService";
 
 /* --------------------------------------------------------------------- */
 /* synthetic time-series data                                            */
 /* --------------------------------------------------------------------- */
 
-const N = 31; // 11:52 -> 12:22, one point per minute
 
-function timeLabel(i) {
-  const total = 52 + i;
-  const hh = 11 + Math.floor(total / 60);
-  const mm = total % 60;
-  return `${hh}:${String(mm).padStart(2, "0")}`;
-}
-
-function buildSeries(keyframes, jitterAmt = 0.05) {
-  const idxs = Object.keys(keyframes)
-    .map(Number)
-    .sort((a, b) => a - b);
-  return Array.from({ length: N }, (_, i) => {
-    let lower = idxs[0];
-    let upper = idxs[idxs.length - 1];
-    for (let k = 0; k < idxs.length - 1; k++) {
-      if (i >= idxs[k] && i <= idxs[k + 1]) {
-        lower = idxs[k];
-        upper = idxs[k + 1];
-        break;
-      }
-    }
-    const t = upper === lower ? 0 : (i - lower) / (upper - lower);
-    const val = keyframes[lower] + (keyframes[upper] - keyframes[lower]) * t;
-    const jitter = val * jitterAmt * Math.sin(i * 2.3 + lower * 0.7);
-    return Math.max(val + jitter, 0.0000001);
-  });
-}
-
-// jagged, multi-bump hardness curves (matches the reference crop)
-const hrSeries = buildSeries(
-  { 0: 0.65, 3: 0.95, 5: 0.7, 7: 0.55, 9: 0.6, 11: 0.85, 13: 0.7, 15: 0.95, 17: 1.25, 19: 1.05, 21: 1.4, 23: 1.9, 25: 1.85, 27: 1.6, 30: 1.35 },
-  0.045
-);
-const hiSeries = buildSeries(
-  { 0: 0.55, 3: 0.7, 5: 0.6, 7: 0.5, 9: 0.52, 11: 0.65, 13: 0.58, 15: 0.72, 17: 0.85, 19: 0.78, 21: 0.88, 23: 1.0, 25: 0.97, 27: 0.9, 30: 0.82 },
-  0.04
-);
-// sharp rise -> double bump -> spike -> crash, like a real GOES flare light curve
-const goesSeries = buildSeries(
-  { 0: 0.0000015, 8: 0.000002, 10: 0.000003, 13: 0.00001, 15: 0.00003, 17: 0.00006, 18: 0.00004, 20: 0.00009, 22: 0.00022, 23: 0.00032, 24: 0.00025, 25: 0.00015, 27: 0.00005, 29: 0.000008, 30: 0.000003 },
-  0.03
-);
-
-const lowSeries = buildSeries({ 0: 150, 10: 300, 15: 700, 20: 1500, 23: 2500, 25: 2200, 30: 1800 });
-const medSeries = buildSeries({ 0: 100, 10: 250, 15: 600, 20: 1800, 23: 3500, 25: 3000, 30: 1300 });
-const highSeries = buildSeries({ 0: 40, 10: 100, 15: 250, 20: 600, 23: 1100, 25: 950, 30: 550 });
-const vhighSeries = buildSeries({ 0: 8, 10: 20, 15: 50, 20: 130, 23: 280, 25: 240, 30: 160 });
-
-const hardeningData = Array.from({ length: N }, (_, i) => ({
-  time: timeLabel(i),
-  hr: hrSeries[i],
-  hi: hiSeries[i],
-  goes: goesSeries[i],
-}));
-
-const energyData = Array.from({ length: N }, (_, i) => ({
-  time: timeLabel(i),
-  low: lowSeries[i],
-  medium: medSeries[i],
-  high: highSeries[i],
-  vhigh: vhighSeries[i],
-}));
-
-const timeTicks = ["11:52", "11:57", "12:02", "12:07", "12:12", "12:17", "12:22"];
 
 const SUP = { "-6": "⁻⁶", "-5": "⁻⁵", "-4": "⁻⁴", "-3": "⁻³", "-2": "⁻²", "-1": "⁻¹", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵" };
 function expTick(v) {
@@ -119,9 +67,10 @@ function expTick(v) {
 /* supports the static pre-built utility classes)                        */
 /* --------------------------------------------------------------------- */
 
-function NavItem({ icon: Icon, label, active }) {
+function NavItem({ icon: Icon, label, active, onClick }) {
   return (
     <div
+      onClick={onClick}
       className="flex items-center gap-3 rounded-lg px-3 py-2 cursor-pointer transition-colors"
       style={{
         fontSize: 13,
@@ -137,7 +86,7 @@ function NavItem({ icon: Icon, label, active }) {
 
 function TabItem({ label, active }) {
   return (
-    <button
+    <button onClick={() => toast("Exporting report...")}
       className="relative px-1 pb-3 font-medium transition-colors"
       style={{ fontSize: 13.5, color: active ? "#60a5fa" : "#94a3b8" }}
     >
@@ -218,7 +167,7 @@ function ProbBar({ label, percent, color }) {
       <div className="h-2 flex-1 overflow-hidden rounded-full" style={{ backgroundColor: "#1e293b" }}>
         <div className="h-full rounded-full" style={{ width: `${Math.max(percent, 2)}%`, backgroundColor: color }} />
       </div>
-      <span className="shrink-0 text-right text-slate-300" style={{ fontSize: 12, width: 36 }}>
+      <span className="shrink-0 text-right text-slate-200" style={{ fontSize: 12, width: 36 }}>
         {percent}%
       </span>
     </div>
@@ -324,116 +273,35 @@ function HardeningGauge({ value }) {
 /* --------------------------------------------------------------------- */
 
 export default function HardeningForecast() {
-  const latestForecasts = [
-    { time: "12:22:00", cls: "C2.4", prob: 71, tone: "#fbbf24" },
-    { time: "12:12:00", cls: "C1.9", prob: 63, tone: "#fbbf24" },
-    { time: "12:02:00", cls: "C1.3", prob: 48, tone: "#fbbf24" },
-    { time: "11:52:00", cls: "B8.7", prob: 34, tone: "#fde047" },
-    { time: "11:42:00", cls: "B6.1", prob: 22, tone: "#fde047" },
-  ];
+  const [activeRange, setActiveRange] = useState("3 hr");
+  const navigate = useNavigate();
 
-  const keyIndicators = [
-    { p: "Hardening Ratio (HR)", cur: "1.28", prev: "0.95", up: true },
-    { p: "Hardness Intensity (HI)", cur: "0.74", prev: "0.63", up: true },
-    { p: "Spectral Index (γ)", cur: "-2.35", prev: "-2.11", up: false },
-    { p: "Energy Flux (15-150 keV)", cur: "2.31 × 10²", prev: "1.62 × 10²", up: true },
-    { p: "GOES Flux (1-8 Å)", cur: "3.21 × 10⁻⁵", prev: "1.98 × 10⁻⁵", up: true },
-  ];
+  // State for service data (initialized with synchronous data to prevent UI flashing)
+  const [data, setData] = useState({
+    hardeningData: syncHardening,
+    energyData: syncEnergy,
+    timeTicks: syncTicks,
+    latestForecasts: syncForecasts,
+    keyIndicators: syncIndicators,
+    features: syncFeatures
+  });
 
-  const features = [
-    { name: "Hardening Ratio (HR)", value: 0.32 },
-    { name: "Hardness Intensity (HI)", value: 0.24 },
-    { name: "Energy Flux (15-150 keV)", value: 0.18 },
-    { name: "Spectral Index (γ)", value: 0.14 },
-    { name: "GOES Flux (1-8 Å)", value: 0.07 },
-    { name: "Rise Time (10-50 keV)", value: 0.05 },
-  ];
+  useEffect(() => {
+    forecastService.getForecastData().then(fetchedData => {
+      setData(fetchedData);
+    });
+  }, []);
+
+  const { hardeningData, energyData, timeTicks, latestForecasts, keyIndicators, features } = data;
 
   return (
-    <div className="flex h-screen w-full bg-slate-950 text-slate-200" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div style={{ ...PAGE_STYLE, fontFamily: FONT }}>
       {/* ---------------------------- Sidebar ---------------------------- */}
-      <aside className="flex w-60 flex-shrink-0 flex-col border-r border-slate-800 bg-slate-950 overflow-y-auto">
-        <div className="flex items-start gap-3 px-5 pt-6 pb-5">
-          <div
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full"
-            style={{ background: "linear-gradient(135deg,#fb923c,#f59e0b)", boxShadow: "0 8px 20px rgba(249,115,22,0.25)" }}
-          >
-            <Sun className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="font-bold leading-tight text-white" style={{ fontSize: 15 }}>
-              SolarGuard
-            </h1>
-            <p className="leading-tight text-slate-500" style={{ fontSize: 10.5, marginTop: 2 }}>
-              Solar Flare Forecasting &amp; Nowcasting System
-            </p>
-            <p className="font-medium text-emerald-400" style={{ fontSize: 10.5, marginTop: 4 }}>
-              Aditya-L1 (SoLEXS + HEL1OS)
-            </p>
-          </div>
-        </div>
+      <Sidebar activePage="Hardening & Forecast" />
 
-        <nav className="flex-1 space-y-1 px-3">
-          <NavItem icon={LayoutDashboard} label="Dashboard" />
-          <NavItem icon={Activity} label="Light Curves" />
-          <NavItem icon={TrendingUp} label="Hardening & Forecast" active />
-          <NavItem icon={Dna} label="Flare Genome" />
-          <NavItem icon={Database} label="Solar Memory DB" />
-          <NavItem icon={Bell} label="Alerts" />
-          <NavItem icon={FileText} label="Reports" />
-          <NavItem icon={SettingsIcon} label="Settings" />
-          <NavItem icon={Info} label="About" />
-        </nav>
-
-        <div className="mx-3 mb-4 space-y-3 rounded-xl border border-slate-800 p-3.5" style={{ backgroundColor: "rgba(15,23,42,0.5)" }}>
-          <div>
-            <p style={{ fontSize: 10.5, color: "#64748b" }}>Selected Event</p>
-            <p className="font-medium text-blue-400" style={{ fontSize: 12.5, marginTop: 2 }}>
-              EVT-2024-06-18-12200
-            </p>
-          </div>
-          <div>
-            <p style={{ fontSize: 10.5, color: "#64748b" }}>Time (IST)</p>
-            <p className="text-slate-300" style={{ fontSize: 12.5, marginTop: 2 }}>
-              2024-06-18 12:22:00
-            </p>
-          </div>
-          <div>
-            <p style={{ fontSize: 10.5, color: "#64748b" }}>Predicted Class</p>
-            <p className="font-semibold text-amber-400" style={{ fontSize: 13, marginTop: 2 }}>
-              C2.4
-            </p>
-          </div>
-          <div>
-            <p style={{ fontSize: 10.5, color: "#64748b" }}>Probability</p>
-            <p className="font-semibold text-violet-400" style={{ fontSize: 13, marginTop: 2 }}>
-              71%
-            </p>
-          </div>
-          <div>
-            <p style={{ fontSize: 10.5, color: "#64748b" }}>Lead Time (Est.)</p>
-            <p className="font-semibold text-emerald-400" style={{ fontSize: 13, marginTop: 2 }}>
-              12 min
-            </p>
-          </div>
-          <div>
-            <p style={{ fontSize: 10.5, color: "#64748b" }}>Data Source</p>
-            <p className="text-slate-300" style={{ fontSize: 12.5, marginTop: 2 }}>
-              SoLEXS + HEL1OS
-            </p>
-          </div>
-          <button
-            className="flex w-full items-center justify-center gap-2 rounded-md border font-medium"
-            style={{ fontSize: 12.5, padding: "6px 0", borderColor: "#2563eb", color: "#60a5fa" }}
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Change Event
-          </button>
-        </div>
-      </aside>
 
       {/* ----------------------------- Main ------------------------------ */}
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      <div style={{ ...MAIN_STYLE }}>
         {/* Header */}
         <header className="flex items-start justify-between px-8 pt-6">
           <div>
@@ -444,14 +312,14 @@ export default function HardeningForecast() {
           </div>
           <div className="flex items-center gap-3">
             <div
-              className="flex items-center gap-2 rounded-lg border text-slate-300"
+              className="flex items-center gap-2 rounded-lg border text-slate-200"
               style={{ fontSize: 13, padding: "8px 12px", borderColor: "#334155", backgroundColor: "rgba(15,23,42,0.6)" }}
             >
               <Calendar className="h-3.5 w-3.5 text-slate-500" />
               2024-06-18
             </div>
             <div
-              className="flex items-center gap-2 rounded-lg border text-slate-300"
+              className="flex items-center gap-2 rounded-lg border text-slate-200"
               style={{ fontSize: 13, padding: "8px 12px", borderColor: "#334155", backgroundColor: "rgba(15,23,42,0.6)" }}
             >
               <Clock className="h-3.5 w-3.5 text-slate-500" />
@@ -475,7 +343,7 @@ export default function HardeningForecast() {
             <TabItem label="Model Forecast" />
             <TabItem label="Event History" />
           </div>
-          <button
+          <button onClick={() => toast("Exporting report...")}
             className="mb-2 flex items-center gap-2 rounded-md border font-medium"
             style={{ fontSize: 12.5, padding: "6px 12px", borderColor: "#2563eb", color: "#60a5fa" }}
           >
@@ -486,7 +354,7 @@ export default function HardeningForecast() {
 
         <div className="space-y-4 px-8 py-5">
           {/* ----------------------- KPI row ----------------------- */}
-          <div className="grid grid-cols-5 gap-4">
+          <div className="sg-grid-5" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
             <KpiCard
               label="Hardening Ratio (HR)"
               value="1.28"
@@ -553,16 +421,17 @@ export default function HardeningForecast() {
                   right={
                     <div className="flex items-center gap-2 text-slate-400" style={{ fontSize: 12 }}>
                       <span>Time Range:</span>
-                      <button className="rounded-md font-medium text-white" style={{ fontSize: 11.5, padding: "4px 10px", backgroundColor: "#2563eb" }}>
+                      
+                      <button className={activeRange === "30 min" ? "rounded-md font-medium text-white" : "text-slate-400 hover:text-slate-200"} onClick={() => setActiveRange("30 min")} style={{ fontSize: 11.5, padding: "4px 10px", backgroundColor: activeRange === "30 min" ? "#2563eb" : "transparent" }}>
                         30 min
                       </button>
-                      <button className="text-slate-400 hover:text-slate-200" style={{ fontSize: 11.5, padding: "4px 6px" }}>
+                      <button className={activeRange === "1 hr" ? "rounded-md font-medium text-white" : "text-slate-400 hover:text-slate-200"} onClick={() => setActiveRange("1 hr")} style={{ fontSize: 11.5, padding: "4px 10px", backgroundColor: activeRange === "1 hr" ? "#2563eb" : "transparent" }}>
                         1 hr
                       </button>
-                      <button className="text-slate-400 hover:text-slate-200" style={{ fontSize: 11.5, padding: "4px 6px" }}>
+                      <button className={activeRange === "3 hr" ? "rounded-md font-medium text-white" : "text-slate-400 hover:text-slate-200"} onClick={() => setActiveRange("3 hr")} style={{ fontSize: 11.5, padding: "4px 10px", backgroundColor: activeRange === "3 hr" ? "#2563eb" : "transparent" }}>
                         3 hr
                       </button>
-                      <button className="text-slate-400 hover:text-slate-200" style={{ fontSize: 11.5, padding: "4px 6px" }}>
+                      <button className={activeRange === "6 hr" ? "rounded-md font-medium text-white" : "text-slate-400 hover:text-slate-200"} onClick={() => setActiveRange("6 hr")} style={{ fontSize: 11.5, padding: "4px 10px", backgroundColor: activeRange === "6 hr" ? "#2563eb" : "transparent" }}>
                         6 hr
                       </button>
                     </div>
@@ -669,7 +538,7 @@ export default function HardeningForecast() {
                 </div>
               </div>
 
-              <p className="font-semibold text-slate-300" style={{ fontSize: 12.5, margin: "16px 0 8px" }}>
+              <p className="font-semibold text-slate-200" style={{ fontSize: 12.5, margin: "16px 0 8px" }}>
                 Class Probabilities
               </p>
               <ProbBar label="X-Class" percent={6} color="#ef4444" />
@@ -681,7 +550,7 @@ export default function HardeningForecast() {
           </div>
 
           {/* ----------------------- bottom row (4 cards) ----------------------- */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="sg-grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
             <CardShell>
               <CardTitle title="Hardening Trend" />
               <HardeningGauge value={0.78} />
@@ -707,7 +576,7 @@ export default function HardeningForecast() {
                 <tbody>
                   {keyIndicators.map((k) => (
                     <tr key={k.p} className="border-t border-slate-800">
-                      <td className="py-2 text-slate-300" style={{ fontSize: 11.5 }}>
+                      <td className="py-2 text-slate-200" style={{ fontSize: 11.5 }}>
                         {k.p}
                       </td>
                       <td className="py-2 text-slate-200" style={{ fontSize: 11.5 }}>
@@ -761,13 +630,13 @@ export default function HardeningForecast() {
                 <tbody>
                   {latestForecasts.map((f) => (
                     <tr key={f.time} className="border-t border-slate-800">
-                      <td className="py-2 text-slate-300" style={{ fontSize: 11.5 }}>
+                      <td className="py-2 text-slate-200" style={{ fontSize: 11.5 }}>
                         {f.time}
                       </td>
                       <td className="py-2 font-semibold" style={{ fontSize: 11.5, color: f.tone }}>
                         {f.cls}
                       </td>
-                      <td className="py-2 text-slate-300" style={{ fontSize: 11.5 }}>
+                      <td className="py-2 text-slate-200" style={{ fontSize: 11.5 }}>
                         {f.prob}%
                       </td>
                       <td className="py-2 text-right">
@@ -777,7 +646,7 @@ export default function HardeningForecast() {
                   ))}
                 </tbody>
               </table>
-              <button className="font-medium text-blue-400 hover:underline" style={{ fontSize: 12, marginTop: 10 }}>
+              <button onClick={() => toast("Exporting report...", "success")} className="font-medium text-blue-400 hover:underline" style={{ fontSize: 12, marginTop: 10 }}>
                 View Full Forecast History →
               </button>
             </CardShell>

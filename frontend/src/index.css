@@ -1,3 +1,10 @@
+/* Add Inter font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -11,7 +18,7 @@
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: 'Inter', system-ui, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
@@ -28,6 +35,34 @@
   @media (max-width: 1024px) {
     font-size: 16px;
   }
+}
+
+:root {
+  /* SolarGuard Dark Theme Tokens */
+  --sg-bg: #080c18;
+  --sg-panel: #0d1424;
+  --sg-panel-alt: #101828;
+  --sg-panel-border: #1a2540;
+  --sg-sidebar: #0a0f1e;
+  --sg-nav-active: #1d4ed8;
+  --sg-text-primary: #f1f5f9;
+  --sg-text-secondary: #94a3b8;
+  --sg-text-muted: #5b6b85;
+  --sg-grid-line: #1a2540;
+}
+
+:root[data-theme="Light"] {
+  /* SolarGuard Light Theme Tokens */
+  --sg-bg: #f1f5f9;
+  --sg-panel: #ffffff;
+  --sg-panel-alt: #f8fafc;
+  --sg-panel-border: #e2e8f0;
+  --sg-sidebar: #ffffff;
+  --sg-nav-active: #2563eb;
+  --sg-text-primary: #0f172a;
+  --sg-text-secondary: #475569;
+  --sg-text-muted: #64748b;
+  --sg-grid-line: #e2e8f0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -50,49 +85,78 @@
   }
 }
 
-body {
+/* ── SolarGuard: global html body reset ───────── */
+html, body {
   margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background: var(--sg-bg);
+  color: var(--sg-text-primary);
+  transition: background 0.2s, color 0.2s;
 }
 
+/* ── Dynamic scrollbar ───────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--sg-bg); }
+::-webkit-scrollbar-thumb { background: var(--sg-panel-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--sg-nav-active); }
+
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
+  width: 100%;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
+/* Scope heading styles to non-SolarGuard contexts only */
 p {
   margin: 0;
+}
+
+/* ── SolarGuard Responsive Sidebar ────────────────── */
+@media (max-width: 1024px) {
+  .sg-sidebar-collapse {
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .sg-sidebar-collapse.open {
+    transform: translateX(0);
+  }
+  .sg-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 190;
+  }
+  .sg-overlay.active {
+    display: block;
+  }
+}
+
+/* ── Responsive grid helpers ──────────────────────── */
+@media (max-width: 1280px) {
+  .sg-grid-5 { grid-template-columns: repeat(3, 1fr) !important; }
+  .sg-grid-6 { grid-template-columns: repeat(3, 1fr) !important; }
+}
+@media (max-width: 900px) {
+  .sg-grid-5 { grid-template-columns: repeat(2, 1fr) !important; }
+  .sg-grid-6 { grid-template-columns: repeat(2, 1fr) !important; }
+  .sg-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .sg-grid-3 { grid-template-columns: 1fr !important; }
+  .sg-grid-2 { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 600px) {
+  .sg-grid-5 { grid-template-columns: 1fr !important; }
+  .sg-grid-6 { grid-template-columns: 1fr !important; }
+  .sg-grid-4 { grid-template-columns: 1fr !important; }
 }
 
 code,
@@ -108,4 +172,16 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+/* ── Fix chart containers on mobile: allow them to auto-height ── */
+@media (max-width: 900px) {
+  .sg-grid-2,
+  .sg-grid-3 {
+    height: auto !important;
+  }
+  .sg-grid-2 > *,
+  .sg-grid-3 > * {
+    min-height: 200px;
+  }
 }

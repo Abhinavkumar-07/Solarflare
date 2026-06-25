@@ -1,40 +1,15 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-
-/* ================================================================
-   SolarGuard – Reports & Analytics Page
-   A single self-contained React component (JSX).
-   Requires: react, chart.js (npm i chart.js)
-   Usage:    import SolarReports from './SolarReports';
-             <SolarReports />
-   ================================================================ */
+import Sidebar from "../components/Sidebar";
+import { useNavigate } from 'react-router-dom';
+import { toast } from "../components/Toast";
+import { COLORS as THEME_COLORS, FONT } from '../theme';
+import { METRICS, CONFUSION_MATRIX, cellColor } from "../data/reportsData";
 
 let ChartJS = null;
 
 // ─── Color tokens ───────────────────────────────────────────────
-const C = {
-  bgDarkest:   '#060a13',
-  bgSidebar:   '#0a0e1a',
-  bgMain:      '#0c1222',
-  bgCard:      '#111a2e',
-  bgInput:     '#0d1529',
-  border:      '#1a2540',
-  textPrimary: '#e2e8f0',
-  textSec:     '#8892a6',
-  textMuted:   '#5a6478',
-  textWhite:   '#ffffff',
-  cyan:        '#22d3ee',
-  blue:        '#3b82f6',
-  purple:      '#a855f7',
-  green:       '#22c55e',
-  yellow:      '#fbbf24',
-  orange:      '#f59e0b',
-  red:         '#ef4444',
-  darkGreen:   '#166534',
-  darkRed:     '#991b1b',
-  darkYellow:  '#854d0e',
-};
-
-const fontSans = "'Inter','Segoe UI',system-ui,sans-serif";
+const C = THEME_COLORS;
+const fontSans = FONT;
 const fontMono = "'JetBrains Mono','Fira Code','Consolas',monospace";
 
 // ─── Sub-components: Charts ──────────────────────────────────────
@@ -281,76 +256,41 @@ function MonthlyTrendChart() {
   return <canvas ref={ref} />;
 }
 
-// ─── Data ───────────────────────────────────────────────────────
-const NAV_ITEMS = [
-  { icon:'fas fa-th-large',    label:'Dashboard' },
-  { icon:'fas fa-chart-line',  label:'Light Curves' },
-  { icon:'fas fa-chart-bar',   label:'Hardening & Forecast' },
-  { icon:'fas fa-dna',         label:'Flare Genome' },
-  { icon:'fas fa-database',    label:'Solar Memory DB' },
-  { icon:'fas fa-bell',        label:'Alerts' },
-  { icon:'fas fa-file-alt',    label:'Reports', active:true },
-  { icon:'fas fa-cog',         label:'Settings' },
-  { icon:'fas fa-info-circle', label:'About' },
-];
 
-const METRICS = [
-  { title: 'Total Events Analyzed', value: '248', trend: '↗ 12.4% vs last period', trendColor: C.cyan, chart: true, color: C.cyan },
-  { title: 'Flares Detected', value: '225', trend: '↗ 10.2% vs last period', trendColor: C.yellow, icon: 'fas fa-sun', color: C.yellow },
-  { title: 'True Positives (TP)', value: '207', trend: '↗ 8.7% vs last period', trendColor: C.green, icon: 'fas fa-check-circle', color: C.green },
-  { title: 'False Alarms (FP)', value: '18', trend: '↘ -5.3% vs last period', trendColor: C.orange, icon: 'fas fa-exclamation-triangle', color: C.orange },
-  { title: 'Missed Events (FN)', value: '21', trend: '↘ -10.6% vs last period', trendColor: C.red, icon: 'fas fa-times-circle', color: C.red },
-  { title: 'Average Lead Time', value: '10.3 min', trend: '↗ 1.8 min vs last period', trendColor: C.purple, icon: 'fas fa-clock', color: C.purple },
-];
-
-const CONFUSION_MATRIX = [
-  { act: 'B', pred: { B: 58, C: 5, M: 1, X: 0 }, tot: 64 },
-  { act: 'C', pred: { B: 7, C: 117, M: 7, X: 1 }, tot: 132 },
-  { act: 'M', pred: { B: 1, C: 6, M: 31, X: 0 }, tot: 38 },
-  { act: 'X', pred: { B: 0, C: 1, M: 1, X: 12 }, tot: 14 },
-  { act: 'Total', pred: { B: 66, C: 129, M: 40, X: 13 }, tot: 248 },
-];
-
-function cellColor(act, pred, val) {
-  if (act === 'Total' || pred === 'tot' || act === 'act') return 'transparent';
-  if (act === pred) return `rgba(34, 197, 94, ${val / 117})`; // Green intensity based on max true pos
-  if (val > 0) return `rgba(245, 158, 11, ${val / 10})`; // Orange intensity for false pos/neg
-  return 'rgba(255,255,255,0.02)';
-}
 
 // ─── Inline-style objects ───────────────────────────────────────
 const S = {
-  app:         { display:'flex', minHeight:'100vh', fontFamily:fontSans, background:C.bgDarkest, color:C.textPrimary, WebkitFontSmoothing:'antialiased' },
-  sidebar:     { width:220, minWidth:220, background:C.bgSidebar, borderRight:`1px solid ${C.border}`, display:'flex', flexDirection:'column', height:'100vh', position:'fixed', top:0, left:0, zIndex:100, overflowY:'auto', overflowX:'hidden' },
-  main:        { flex:1, marginLeft:220, padding:'0 20px 20px', minWidth:0, display:'flex', flexDirection:'column' },
+  app:         { display:'flex', minHeight:'100vh', fontFamily:fontSans, background:C.bg, color:C.textPrimary, WebkitFontSmoothing:'antialiased', overflowX:'hidden' },
+  sidebar:     { width:220, minWidth:220, background:C.sidebar, borderRight:`1px solid ${C.panelBorder}`, display:'flex', flexDirection:'column', height:'100vh', position:'fixed', top:0, left:0, zIndex:100, overflowY:'auto', overflowX:'hidden' },
+  main:        { flex:1, padding:'0 20px 20px', minWidth:0, display:'flex', flexDirection:'column', overflowX:'hidden' },
   
-  sidebarHdr:  { padding:'16px 14px 12px', borderBottom:`1px solid ${C.border}` },
+  sidebarHdr:  { padding:'16px 14px 12px', borderBottom:`1px solid ${C.panelBorder}` },
   logoWrap:    { display:'flex', alignItems:'flex-start', gap:10 },
   logoTitle:   { fontSize:'1.2rem', fontWeight:700, color:C.textWhite, letterSpacing:.5, lineHeight:1.2 },
-  logoSub:     { fontSize:'.75rem', color:C.textSec, lineHeight:1.3, marginTop:3 },
-  logoVer:     { fontSize:'.65rem', color:C.green, marginTop:3, fontWeight:500, opacity:.8 }, // Note: Green version text in this screenshot
+  logoSub:     { fontSize:'.75rem', color:C.textSecondary, lineHeight:1.3, marginTop:3 },
+  logoVer:     { fontSize:'.65rem', color:C.accentGreen, marginTop:3, fontWeight:500, opacity:.8 },
 
   navWrap:     { flex:1, padding:'10px 8px', display:'flex', flexDirection:'column', gap:2 },
-  navItem:     (active) => ({ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderRadius:8, color:active?C.textWhite:C.textSec, textDecoration:'none', fontSize:'.85rem', fontWeight:active?600:450, cursor:'pointer', background:active?C.blue:'transparent', width:'100%', fontFamily:fontSans, border:'none', textAlign:'left' }),
+  navItem:     (active) => ({ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderRadius:8, color:active?C.textWhite:C.textSecondary, textDecoration:'none', fontSize:'.85rem', fontWeight:active?600:450, cursor:'pointer', background:active?C.accentBlue:'transparent', width:'100%', fontFamily:fontSans, border:'none', textAlign:'left' }),
   navIcon:     { width:18, textAlign:'center', fontSize:'.85rem', flexShrink:0 },
 
-  sysStatusBox:{ padding:'16px 14px', borderTop:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:'12px' },
-  sysTitle:    { fontSize:'.75rem', color:C.textSec },
+  sysStatusBox:{ padding:'16px 14px', borderTop:`1px solid ${C.panelBorder}`, display:'flex', flexDirection:'column', gap:'12px' },
+  sysTitle:    { fontSize:'.75rem', color:C.textSecondary },
   sysVal:      { fontSize:'.8rem', color:C.textPrimary, fontWeight:500 },
   sysValGreen: { fontSize:'.8rem', color:C.textPrimary, fontWeight:500, display:'flex', alignItems:'center', gap:6 },
-  dotGreen:    { width:8, height:8, borderRadius:'50%', background:C.green },
+  dotGreen:    { width:8, height:8, borderRadius:'50%', background:C.accentGreen },
 
   header:      { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 0', gap:16, flexWrap:'wrap' },
   pageTitle:   { fontSize:'1.5rem', fontWeight:700, color:C.textWhite, letterSpacing:.3, lineHeight:1.3 },
-  pageSub:     { fontSize:'.8rem', color:C.textSec, marginTop:2 },
+  pageSub:     { fontSize:'.8rem', color:C.textSecondary, marginTop:2 },
   headerRight: { display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' },
-  datePicker:  { display:'flex', alignItems:'center', gap:6, padding:'7px 12px', background:C.bgInput, border:`1px solid ${C.border}`, borderRadius:8, fontSize:'.78rem', color:C.textSec, cursor:'pointer' },
-  selectClass: { padding:'7px 30px 7px 12px', background:C.bgInput, border:`1px solid ${C.border}`, borderRadius:8, color:C.textPrimary, fontSize:'.78rem', outline:'none', appearance:'none' },
-  btnExport:   { display:'flex', alignItems:'center', gap:6, padding:'7px 14px', background:C.blue, border:'none', borderRadius:8, color:'white', fontSize:'.78rem', cursor:'pointer', fontWeight:500 },
+  datePicker:  { display:'flex', alignItems:'center', gap:6, padding:'7px 12px', background:C.panel, border:`1px solid ${C.panelBorder}`, borderRadius:8, fontSize:'.78rem', color:C.textSecondary, cursor:'pointer' },
+  selectClass: { padding:'7px 30px 7px 12px', background:C.panel, border:`1px solid ${C.panelBorder}`, borderRadius:8, color:C.textPrimary, fontSize:'.78rem', outline:'none', appearance:'none' },
+  btnExport:   { display:'flex', alignItems:'center', gap:6, padding:'7px 14px', background:C.accentBlue, border:'none', borderRadius:8, color:'white', fontSize:'.78rem', cursor:'pointer', fontWeight:500 },
 
   metricsGrid: { display:'grid', gridTemplateColumns:'repeat(6, 1fr)', gap:14, marginBottom:16 },
-  metricCard:  { background:C.bgCard, border:`1px solid ${C.border}`, borderRadius:10, padding:'14px', display:'flex', flexDirection:'column', gap:8, position:'relative' },
-  mTitle:      { fontSize:'.75rem', color:C.textSec, whiteSpace:'nowrap' },
+  metricCard:  { background:C.panel, border:`1px solid ${C.panelBorder}`, borderRadius:10, padding:'14px', display:'flex', flexDirection:'column', gap:8, position:'relative' },
+  mTitle:      { fontSize:'.75rem', color:C.textSecondary, whiteSpace:'nowrap' },
   mBody:       { display:'flex', justifyContent:'space-between', alignItems:'center' },
   mVal:        (c) => ({ fontSize:'1.8rem', fontWeight:700, color:c }),
   mTrend:      (c) => ({ fontSize:'.7rem', color:c }),
@@ -379,46 +319,12 @@ const S = {
 };
 
 export default function SolarReports() {
+  const navigate = useNavigate();
   return (
     <div style={S.app}>
       {/* ──── Sidebar ──── */}
-      <aside style={S.sidebar}>
-        <div style={S.sidebarHdr}>
-          <div style={S.logoWrap}>
-            <SunLogo />
-            <div style={{ display:'flex', flexDirection:'column', minWidth:0 }}>
-              <span style={S.logoTitle}>SolarGuard</span>
-              <span style={S.logoSub}>Solar Flare Forecasting &amp;<br/>Nowcasting System</span>
-              <span style={S.logoVer}>Aditya-L1 (SoLEXS + HEL1OS)</span>
-            </div>
-          </div>
-        </div>
-        <nav style={S.navWrap}>
-          {NAV_ITEMS.map((n,i) => (
-            <button key={i} style={S.navItem(n.active)}>
-              <i className={n.icon} style={S.navIcon} />
-              <span>{n.label}</span>
-            </button>
-          ))}
-        </nav>
-        <div style={S.sysStatusBox}>
-          <div>
-            <div style={S.sysTitle}>System Status</div>
-            <div style={S.sysValGreen}><span style={S.dotGreen}/> Normal</div>
-          </div>
-          <div>
-            <div style={S.sysTitle}>Data Source</div>
-            <div style={{...S.sysVal, color:C.green}}>Aditya-L1 (SoLEXS + HEL1OS)</div>
-          </div>
-          <div>
-            <div style={S.sysTitle}>Last Updated</div>
-            <div style={{...S.sysVal, color:C.textSec, fontSize:'.75rem'}}>2024-09-02 12:45:30 IST</div>
-          </div>
-        </div>
-        <div style={{ padding:'10px 14px', fontSize:'.65rem', color:C.textMuted }}>All times in IST <i className="fas fa-info-circle"/></div>
-      </aside>
+      <Sidebar activePage="Reports" />
 
-      {/* ──── Main Content ──── */}
       <main style={S.main}>
         <header style={S.header}>
           <div>
@@ -426,18 +332,18 @@ export default function SolarReports() {
             <p style={S.pageSub}>Performance evaluation and system analytics</p>
           </div>
           <div style={S.headerRight}>
-            <div style={S.datePicker}>
+            <div style={S.datePicker} onClick={() => toast("Open Date Picker")}>
               <i className="far fa-calendar-alt"/> 2024-09-02 &nbsp;–&nbsp; 2024-09-02 <i className="fas fa-chevron-down" style={{fontSize:'.6rem'}}/>
             </div>
-            <select style={S.selectClass}>
+            <select style={S.selectClass} onChange={(e) => toast(`Filter changed to ${e.target.value}`)}>
               <option>All Classes</option>
             </select>
-            <button style={S.btnExport}><i className="fas fa-download"/> Export Report</button>
+            <button style={S.btnExport} onClick={() => toast("Action triggered")} ><i className="fas fa-download"/> Export Report</button>
           </div>
         </header>
 
         {/* Top Metrics Grid */}
-        <div style={S.metricsGrid}>
+        <div className="sg-grid-6" style={S.metricsGrid}>
           {METRICS.map((m,i) => (
             <div key={i} style={S.metricCard}>
               <div style={S.mTitle}>{m.title}</div>
@@ -452,7 +358,7 @@ export default function SolarReports() {
         </div>
 
         {/* Row 2: Performance Summary & Metrics Over Time */}
-        <div style={S.gridRow2}>
+        <div className="sg-grid-2" style={S.gridRow2}>
           <div style={S.panel}>
             <div style={S.pHdr}><span style={S.pTitle}>Performance Summary</span></div>
             <div style={{...S.pBody, display:'flex', flexDirection:'column', justifyContent:'center'}}>
@@ -477,7 +383,7 @@ export default function SolarReports() {
                   <span><span style={{color:C.green}}>—</span> Recall</span>
                   <span><span style={{color:C.purple}}>—</span> F1-Score</span>
                 </div>
-                <select style={{...S.selectClass, padding:'3px 20px 3px 8px', fontSize:'.7rem'}}>
+                <select style={{...S.selectClass, padding:'3px 20px 3px 8px', fontSize:'.7rem'}} onChange={(e) => toast(`Granularity changed to ${e.target.value}`)}>
                   <option>Daily</option>
                 </select>
               </div>
@@ -489,7 +395,7 @@ export default function SolarReports() {
         </div>
 
         {/* Row 3: Detection Stats, Lead Time, Class Dist */}
-        <div style={S.gridRow3}>
+        <div className="sg-grid-3" style={S.gridRow3}>
           <div style={S.panel}>
             <div style={S.pHdr}><span style={S.pTitle}>Detection Statistics by Flare Class</span></div>
             <div style={{padding:'8px 16px', flex:1}}>
@@ -562,7 +468,7 @@ export default function SolarReports() {
         </div>
 
         {/* Row 4: Monthly Trend, Confusion Matrix, Downloadable Reports */}
-        <div style={S.gridRow4} style={{...S.gridRow4, marginBottom:0}}>
+        <div className="sg-grid-3" style={{...S.gridRow4, marginBottom:0}}>
           <div style={S.panel}>
             <div style={S.pHdr}>
               <span style={S.pTitle}>Monthly Trend (Detected Flares)</span>
@@ -616,7 +522,7 @@ export default function SolarReports() {
                 { icon:'far fa-image', col:C.orange, l:'Confusion Matrix (PNG)' },
                 { icon:'far fa-chart-bar', col:C.blue, l:'Monthly Trend (PNG)' },
               ].map((r,i) => (
-                <a key={i} href="#" style={S.reportLink}>
+                <a key={i} href="#" style={S.reportLink} onClick={(e) => { e.preventDefault(); toast("Downloading report...", "success"); }}>
                   <div style={{display:'flex', alignItems:'center', gap:10}}>
                     <i className={r.icon} style={{color:r.col, width:16, textAlign:'center'}}/>
                     <span>{r.l}</span>

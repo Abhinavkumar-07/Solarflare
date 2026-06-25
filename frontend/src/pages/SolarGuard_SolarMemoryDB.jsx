@@ -1,4 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import Sidebar from "../components/Sidebar";
+import { toast } from "../components/Toast";
+import { STATS, TABLE_ROWS, ACTIVITIES } from "../data/memoryData";
 
 /* ================================================================
    SolarGuard – Solar Memory Database Page
@@ -13,28 +16,28 @@ let ChartJS = null;
 
 // ─── Color tokens ───────────────────────────────────────────────
 const C = {
-  bgDarkest:   '#060a13',
+  bgDarkest:   '#0a0e1a',
   bgSidebar:   '#0a0e1a',
-  bgMain:      '#0c1222',
-  bgCard:      '#111a2e',
+  bgMain:      '#0a0e1a',
+  bgCard:      '#0f1626',
   bgCardHover: '#152036',
-  bgInput:     '#0d1529',
-  border:      '#1a2540',
-  borderLight: '#1e2d4a',
-  textPrimary: '#e2e8f0',
-  textSec:     '#8892a6',
-  textMuted:   '#5a6478',
+  bgInput:     '#0a0e1a',
+  border:      '#1c2740',
+  borderLight: '#263352',
+  textPrimary: '#f1f5f9',
+  textSec:     '#94a3b8',
+  textMuted:   '#5b6b85',
   textWhite:   '#ffffff',
-  cyan:        '#22d3ee',
-  blue:        '#3b82f6',
-  purple:      '#a855f7',
-  green:       '#22c55e',
-  yellow:      '#fbbf24',
-  orange:      '#f59e0b',
-  red:         '#ef4444',
+  cyan:        '#2dd4bf',
+  blue:        '#38bdf8',
+  purple:      '#c084fc',
+  green:       '#22d97a',
+  yellow:      '#facc15',
+  orange:      '#fb923c',
+  red:         '#f87171',
 };
 
-const fontSans = "'Inter','Segoe UI',system-ui,sans-serif";
+const fontSans = "'Inter', system-ui, sans-serif";
 const fontMono = "'JetBrains Mono','Fira Code','Consolas',monospace";
 
 // ─── Helpers ────────────────────────────────────────────────────
@@ -190,50 +193,15 @@ function UMAPChart() {
   return <canvas ref={ref} style={{ width:'100%', height:'100%' }} />;
 }
 
-// ─── Data ───────────────────────────────────────────────────────
-const NAV_ITEMS = [
-  { icon:'fas fa-th-large',    label:'Dashboard' },
-  { icon:'fas fa-chart-line',  label:'Light Curves' },
-  { icon:'fas fa-chart-bar',   label:'Hardening & Forecast' },
-  { icon:'fas fa-dna',         label:'Flare Genome' },
-  { icon:'fas fa-database',    label:'Solar Memory DB', active:true },
-  { icon:'fas fa-bell',        label:'Alerts' },
-  { icon:'fas fa-file-alt',    label:'Reports' },
-  { icon:'fas fa-cog',         label:'Settings' },
-  { icon:'fas fa-info-circle', label:'About' },
-];
 
-const STATS = [
-  { label:'Total Events',       value:'863',         sub:'In Database',       icon:'fas fa-solar-panel',    color:C.blue,   bg:'rgba(59,130,246,.15)',  grad:'linear-gradient(90deg,#3b82f6,#60a5fa)' },
-  { label:'Total Genomes',      value:'863',         sub:'64-D Fingerprints', icon:'fas fa-fingerprint',    color:C.purple, bg:'rgba(168,85,247,.15)', grad:'linear-gradient(90deg,#a855f7,#c084fc)' },
-  { label:'Avg Similarity Search', value:'0.78',     sub:'Top Match Score',   icon:'fas fa-search',         color:C.cyan,   bg:'rgba(34,211,238,.15)', grad:'linear-gradient(90deg,#22d3ee,#67e8f9)' },
-  { label:'Database Coverage',  value:'2023 – 2026', sub:'Date Range',        icon:'fas fa-satellite-dish', color:C.green,  bg:'rgba(34,197,94,.15)',  grad:'linear-gradient(90deg,#22c55e,#4ade80)' },
-  { label:'Storage Size',       value:'28.6 MB',     sub:'FAISS Index',       icon:'fas fa-hdd',            color:C.orange, bg:'rgba(245,158,11,.15)', grad:'linear-gradient(90deg,#f59e0b,#fcd34d)' },
-];
-
-const TABLE_ROWS = [
-  { rank:1, id:'EVT-2024-06-18-122200', date:'2024-06-18 12:22:00', cls:'C2.4', clsType:'c', score:.92, anomaly:'0.15', lead:'12 min' },
-  { rank:2, id:'EVT-2024-06-18-110200', date:'2024-06-18 11:02:00', cls:'C1.8', clsType:'c', score:.88, anomaly:'0.21', lead:'9 min' },
-  { rank:3, id:'EVT-2024-06-03-094100', date:'2024-06-03 09:41:00', cls:'C3.1', clsType:'c', score:.84, anomaly:'0.17', lead:'14 min' },
-  { rank:4, id:'EVT-2024-06-03-101500', date:'2024-06-03 10:15:00', cls:'B9.7', clsType:'b', score:.79, anomaly:'0.24', lead:'8 min' },
-  { rank:5, id:'EVT-2024-05-22-085000', date:'2024-05-22 08:50:00', cls:'B7.5', clsType:'b', score:.74, anomaly:'0.28', lead:'11 min' },
-];
-
-const ACTIVITIES = [
-  { time:'2024-09-02 12:45:30', action:'Added new event',  detail:'QRY-2024-09-02-121530', mono:true },
-  { time:'2024-09-02 12:44:10', action:'Search performed',  detail:'(Top K: 5)' },
-  { time:'2024-09-02 12:40:22', action:'Index updated',     detail:'(FAISS)' },
-  { time:'2024-09-02 12:30:05', action:'New event stored',  detail:'EVT-2024-09-02-120005', mono:true },
-  { time:'2024-09-02 12:15:11', action:'Search performed',  detail:'(Top K: 5)' },
-];
 
 // ─── Inline-style objects ───────────────────────────────────────
 const S = {
   /* layout */
-  app:         { display:'flex', minHeight:'100vh', fontFamily:fontSans, background:C.bgDarkest, color:C.textPrimary, WebkitFontSmoothing:'antialiased' },
-  sidebar:     { width:220, minWidth:220, background:C.bgSidebar, borderRight:`1px solid ${C.border}`, display:'flex', flexDirection:'column', height:'100vh', position:'fixed', top:0, left:0, zIndex:100, overflowY:'auto', overflowX:'hidden', transition:'transform .3s ease' },
+  app:         { display:'flex', minHeight:'100vh', fontFamily:fontSans, background:'#080c18', color:'#f1f5f9', WebkitFontSmoothing:'antialiased' },
+  sidebar:     { width:220, minWidth:220, background:'#0a0f1e', borderRight:`1px solid #1a2540`, display:'flex', flexDirection:'column', height:'100vh', position:'sticky', top:0, zIndex:10, overflowY:'auto', overflowX:'hidden', transition:'transform .3s ease' },
   sidebarHidden: { transform:'translateX(-100%)' },
-  main:        { flex:1, marginLeft:220, padding:'0 20px 20px', minWidth:0, overflowX:'hidden' },
+  main:        { flex:1, marginLeft:0, padding:'0 20px 20px', minWidth:0, overflowX:'hidden' },
   mainFull:    { marginLeft:0, padding:'0 16px 16px' },
 
   /* sidebar header */
@@ -412,64 +380,28 @@ if (typeof document !== 'undefined' && !document.getElementById(styleId)) {
 
 // ─── Main Component ─────────────────────────────────────────────
 export default function SolarMemoryDB() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterClass, setFilterClass] = useState("All Classes");
+  const [filterRegion, setFilterRegion] = useState("All Regions");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedRank, setSelectedRank] = useState(0);
   const [sliderVal, setSliderVal] = useState(75);
 
   const sliderBg = `linear-gradient(90deg,#22d3ee 0%,#22d3ee ${sliderVal}%,#1a2540 ${sliderVal}%,#1a2540 100%)`;
 
+  // Compute filtered rows based on search query and class filter
+  const filteredRows = TABLE_ROWS.filter(row => {
+    const q = searchQuery.toLowerCase();
+    const matchQuery = !q || row.id.toLowerCase().includes(q) || row.date.toLowerCase().includes(q) || row.cls.toLowerCase().includes(q);
+    const matchClass = filterClass === "All Classes" || filterClass === "Current Event (Live)" || filterClass === "Class" || row.clsType.toLowerCase() === filterClass.charAt(0).toLowerCase();
+    return matchQuery && matchClass;
+  });
+
   return (
     <div style={S.app}>
       {/* ──── Sidebar ──── */}
-      <aside className={`sg-sidebar${sidebarOpen?' open':''}`} style={S.sidebar}>
-        {/* Header */}
-        <div style={S.sidebarHdr}>
-          <div style={S.logoWrap}>
-            <SunLogo />
-            <div style={{ display:'flex', flexDirection:'column', minWidth:0 }}>
-              <span style={S.logoTitle}>SolarGuard</span>
-              <span style={S.logoSub}>Solar Flare Forecasting &amp;<br/>Nowcasting System</span>
-              <span style={S.logoVer}>Aditya-L1 (SoLEXS + HEL1OS)</span>
-            </div>
-          </div>
-        </div>
+      <Sidebar activePage="Solar Memory DB" />
 
-        {/* Nav */}
-        <nav style={S.navWrap}>
-          {NAV_ITEMS.map((n,i) => (
-            <button key={i} style={{ ...S.navItem, ...(n.active ? S.navActive : {}) }}>
-              {n.active && <span style={S.navActiveBar} />}
-              <i className={n.icon} style={S.navIcon} />
-              <span>{n.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        {/* DB Info */}
-        <div style={S.dbCard}>
-          <div style={S.dbTitle}>Database Info</div>
-          {[
-            ['Last Updated','2024-09-02 12:45:30 IST'],
-            ['Total Events',<span key="te" style={{color:C.cyan,fontWeight:600}}>863</span>],
-            ['Data Source','SoLEXS + HEL1OS'],
-            ['Index Type','FAISS (L2)'],
-            ['Status',<span key="st" style={{color:C.green,display:'flex',alignItems:'center',gap:5}}><span style={{width:6,height:6,borderRadius:'50%',background:C.green,display:'inline-block',animation:'pulseGreen 2s ease-in-out infinite'}}/> Active</span>],
-          ].map(([l,v],i) => (
-            <div key={i} style={S.dbRow}>
-              <span style={S.dbLabel}>{l}</span>
-              <span style={S.dbVal}>{v}</span>
-            </div>
-          ))}
-        </div>
-      </aside>
-
-      {/* Mobile toggle */}
-      <button className="sg-toggle" style={S.toggle} onClick={() => setSidebarOpen(!sidebarOpen)}>
-        <i className="fas fa-bars" />
-      </button>
-      <div className={`sg-overlay${sidebarOpen?' active':''}`} style={S.overlay} onClick={() => setSidebarOpen(false)} />
-
-      {/* ──── Main Content ──── */}
       <main className="sg-main" style={S.main}>
         {/* Header */}
         <header className="sg-header" style={S.header}>
@@ -481,7 +413,7 @@ export default function SolarMemoryDB() {
             <div style={S.headerCtrl}><i className="fas fa-calendar-alt" style={{color:C.textMuted,fontSize:'.75rem'}}/><span>2024-09-02</span></div>
             <div style={S.headerCtrl}><i className="fas fa-clock" style={{color:C.textMuted,fontSize:'.75rem'}}/><span>12:15:30 IST</span></div>
             <div style={S.liveBadge}><span style={S.liveDot}/><span>Live</span></div>
-            <button style={S.btnAdd}><i className="fas fa-plus" style={{fontSize:'.7rem'}}/><span>Add New Event</span></button>
+            <button style={S.btnAdd} onClick={() => toast("Add new event modal")}><i className="fas fa-plus" style={{fontSize:'.7rem'}}/><span>Add New Event</span></button>
           </div>
         </header>
 
@@ -507,25 +439,25 @@ export default function SolarMemoryDB() {
           <div style={{...S.searchGrp, flex:1, minWidth:200}}>
             <label style={S.searchLbl}>Search Similar Events</label>
             <div style={S.searchInpW}>
-              <input style={S.searchInp} placeholder="Search by Event ID, Date, Class..." />
-              <button style={S.btnSearch}>Search</button>
+              <input style={S.searchInp} placeholder="Search by Event ID, Date, Class..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <button style={S.btnSearch} onClick={() => toast(`Searching for ${searchQuery}`)}>Search</button>
             </div>
           </div>
           <div style={S.searchGrp}>
             <label style={S.searchLbl}>Search by</label>
-            <select style={S.select}>
+            <select style={S.select} value={filterClass} onChange={(e) => setFilterClass(e.target.value)}>
               <option>Current Event (Live)</option><option>Event ID</option><option>Date Range</option><option>Class</option>
             </select>
           </div>
           <div style={S.searchGrp}>
             <label style={S.searchLbl}>Top K Results</label>
-            <select style={{...S.select,...S.selectSmall}}>
+            <select style={{...S.select,...S.selectSmall}} value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)}>
               <option>5</option><option>10</option><option>15</option><option>20</option>
             </select>
           </div>
           <div style={S.searchGrp}>
             <label style={S.searchLbl}>&nbsp;</label>
-            <button style={S.btnFilter}><i className="fas fa-sliders-h"/><span>Filters</span></button>
+            <button style={S.btnFilter} onClick={() => toast("Open advanced filters")}><i className="fas fa-sliders-h"/><span>Filters</span></button>
           </div>
           <div style={{...S.searchGrp, minWidth:200, flex:.7}}>
             <label style={S.searchLbl}>Similarity Threshold</label>
@@ -583,7 +515,7 @@ export default function SolarMemoryDB() {
                   </tr>
                 </thead>
                 <tbody>
-                  {TABLE_ROWS.map((r,i) => (
+                  {filteredRows.length > 0 ? filteredRows.map((r,i) => (
                     <tr key={i} style={selectedRank===i ? S.selectedRow : {}}>
                       <td style={S.td}>{r.rank}</td>
                       <td style={{...S.td,...S.mono,fontSize:'.68rem',color:C.textPrimary}}>{r.id}</td>
@@ -603,7 +535,13 @@ export default function SolarMemoryDB() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan="8" style={{...S.td, textAlign:'center', padding:'20px', color:C.textMuted}}>
+                        No matching events found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -616,22 +554,24 @@ export default function SolarMemoryDB() {
               <h3 style={S.panelTitle}>Selected Similar Event (Rank #{selectedRank+1})</h3>
             </div>
             <div style={S.evtDetails}>
-              {[
-                ['Event ID',       <span key="sid" style={{...S.detailVal,...S.mono,fontSize:'.72rem'}}>{TABLE_ROWS[selectedRank].id}</span>],
-                ['Date & Time (IST)', TABLE_ROWS[selectedRank].date],
-                ['Class',           <span key="sc" style={S.classBadge(TABLE_ROWS[selectedRank].clsType)}>{TABLE_ROWS[selectedRank].cls}</span>],
+              {filteredRows.length > 0 ? [
+                ['Event ID',       <span key="sid" style={{...S.detailVal,...S.mono,fontSize:'.72rem'}}>{filteredRows[selectedRank]?.id || ''}</span>],
+                ['Date & Time (IST)', filteredRows[selectedRank]?.date || ''],
+                ['Class',           <span key="sc" style={S.classBadge(filteredRows[selectedRank]?.clsType)}>{filteredRows[selectedRank]?.cls || ''}</span>],
                 ['Peak Time',       '12:28:30'],
                 ['Peak Flux (Soft)',<span key="pfs">1.18 × 10<sup style={{fontSize:'.55rem'}}>-5</sup> cts/s</span>],
                 ['Peak Flux (Hard)',<span key="pfh">2.31 × 10<sup style={{fontSize:'.55rem'}}>-5</sup> cts/s</span>],
                 ['Hardening Ratio', '1.12'],
-                ['Anomaly Score',   <span key="asm" style={S.highlightY}>{TABLE_ROWS[selectedRank].anomaly}</span>],
-                ['Lead Time (Actual)', TABLE_ROWS[selectedRank].lead],
+                ['Anomaly Score',   <span key="asm" style={S.highlightY}>{filteredRows[selectedRank]?.anomaly || ''}</span>],
+                ['Lead Time (Actual)', filteredRows[selectedRank]?.lead || ''],
               ].map(([l,v],i) => (
                 <div key={i} style={S.detailRow}>
                   <span style={S.detailLbl}>{l}</span>
                   <span style={S.detailVal}>{v}</span>
                 </div>
-              ))}
+              )) : (
+                <div style={{color:C.textMuted, padding:'10px 0', fontSize:'0.8rem'}}>No event selected</div>
+              )}
             </div>
             <div style={S.genomeSection}>
               <h4 style={S.genomeTitle}>Event Genome (64-D Fingerprint)</h4>
@@ -692,7 +632,7 @@ export default function SolarMemoryDB() {
               ))}
             </div>
             <div style={S.actFooter}>
-              <button style={S.btnExport}><i className="fas fa-download" style={{fontSize:'.75rem'}}/><span>Export Database</span></button>
+              <button style={S.btnExport} onClick={() => toast("Exporting Solar Memory DB")}><i className="fas fa-download" style={{fontSize:'.75rem'}}/><span>Export Database</span></button>
             </div>
           </div>
         </section>

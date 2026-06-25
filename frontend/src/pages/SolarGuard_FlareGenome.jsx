@@ -1,4 +1,12 @@
+import Sidebar from "../components/Sidebar";
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "../components/Toast";
+import { PAGE_STYLE, MAIN_STYLE, COLORS as THEME_COLORS, FONT } from "../theme";
+import { 
+  seededRand, HEATMAP_DATA, LABELS, SELECTED, TOP_MATCH, 
+  ROWS, EVENTS, CONTRIBS 
+} from "../data/genomeData";
 
 // ── Colour helpers ────────────────────────────────────────────────────────────
 function colorAt(v) {
@@ -15,26 +23,7 @@ function colorAt(v) {
 }
 function toRgb(arr) { return `rgb(${arr[0]},${arr[1]},${arr[2]})`; }
 
-// ── Seeded pseudo-random ──────────────────────────────────────────────────────
-function seededRand(i) {
-  const x = Math.sin(i + 42) * 10000;
-  return x - Math.floor(x);
-}
 
-// ── Generate heatmap data ─────────────────────────────────────────────────────
-const rowPatterns = [
-  (j) => -1.2 + 0.8 * Math.sin(j / 10) + 0.4 * (seededRand(j) - 0.5),
-  (j) => 0.5 + 1.5 * Math.sin(j / 8 + 1) + 0.5 * (seededRand(j + 100) - 0.5),
-  (j) => -0.5 + 1.2 * Math.sin(j / 6 + 2) + (j > 40 ? 1.5 * (seededRand(j + 200) - 0.3) : 0) + 0.3 * (seededRand(j + 300) - 0.5),
-  (j) => 0.3 * Math.sin(j / 12 + 0.5) + 0.8 * (seededRand(j + 400) - 0.5),
-  (j) => -0.8 + 0.6 * Math.sin(j / 9 + 3) + (j > 50 ? 2 : 0) + 0.4 * (seededRand(j + 500) - 0.5),
-  (j) => 0.2 + 0.5 * Math.sin(j / 15 + 1.5) + 0.6 * (seededRand(j + 600) - 0.5),
-  (j) => -1.5 + 0.3 * Math.sin(j / 20) + (j > 55 ? 1.8 : 0) + 0.3 * (seededRand(j + 700) - 0.5),
-  (j) => -2 + 0.4 * Math.sin(j / 25 + 2) + 0.5 * (seededRand(j + 800) - 0.5),
-];
-const HEATMAP_DATA = Array.from({ length: 8 }, (_, r) =>
-  Array.from({ length: 64 }, (_, c) => rowPatterns[r](c))
-);
 
 // ── Heatmap canvas ────────────────────────────────────────────────────────────
 function Heatmap() {
@@ -79,16 +68,6 @@ function RadarChart() {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
 
-  const LABELS = [
-    ["Spectral Flux (Soft)"],
-    ["Spectral Flux", "(Hard)"],
-    ["Hardening", "Evolution"],
-    ["Temporal Gradients"],
-    ["Wavelet", "Features"],
-    ["Statistical", "Moments"],
-  ];
-  const SELECTED  = [0.72, 0.82, 0.68, 0.58, 0.76, 0.62];
-  const TOP_MATCH = [0.66, 0.74, 0.61, 0.52, 0.68, 0.56];
   const N = 6;
 
   function drawRadar(canvas) {
@@ -102,10 +81,10 @@ function RadarChart() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
-    const cx   = W * 0.45;
+    const cx   = W * 0.50;
     const cy   = H * 0.50;
-    const maxR = Math.min(W, H) * 0.32;
-    const fs   = Math.max(9, Math.round(maxR * 0.13));
+    const maxR = Math.min(W, H) * 0.24;
+    const fs   = Math.max(9, Math.round(maxR * 0.17));
 
     const angle = (i) => (i * 2 * Math.PI / N) - Math.PI / 2;
     const pt    = (v, i) => [cx + maxR * v * Math.cos(angle(i)), cy + maxR * v * Math.sin(angle(i))];
@@ -289,11 +268,21 @@ function RadarChart() {
 // ── Evolution chart canvas ────────────────────────────────────────────────────
 function EvolutionChart() {
   const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
+  const containerRef = useRef(null);
+
+  function drawEvolution(canvas) {
     if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const W = rect.width, H = rect.height;
+    
+    // Set actual canvas size accounting for DPR
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    
     const ctx = canvas.getContext("2d");
-    const W = canvas.width, H = canvas.height;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
     const pad = { l: 24, r: 10, t: 14, b: 6 };
     const N = 150;
     const pts = Array.from({ length: N }, (_, i) => {
@@ -336,31 +325,36 @@ function EvolutionChart() {
     ctx.font = "10px system-ui";
     ctx.textAlign = "center";
     ctx.fillText("Selected Event", evtX, pad.t - 2);
+  }
+
+  useEffect(() => {
+    drawEvolution(canvasRef.current);
+    
+    const ro = new ResizeObserver(() => drawEvolution(canvasRef.current));
+    if (containerRef.current) ro.observe(containerRef.current);
+    return () => ro.disconnect();
   }, []);
-  return <canvas ref={canvasRef} width={620} height={90} style={{ width: "100%", display: "block" }} />;
+
+  return (
+    <div ref={containerRef} style={{ width: "100%", height: 100, position: "relative" }}>
+      <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />
+    </div>
+  );
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+const C = THEME_COLORS;
 const S = {
-  app: { display: "flex", height: "100vh", minHeight: 860, overflow: "hidden", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", fontSize: 13, background: "#0f1117", color: "#e2e8f0" },
-  sidebar: { width: 200, minWidth: 200, background: "#131720", borderRight: "1px solid #1e2535", display: "flex", flexDirection: "column" },
-  logoArea: { padding: "16px 16px 12px", borderBottom: "1px solid #1e2535" },
-  logoRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 },
-  logoSun: { width: 32, height: 32, background: "linear-gradient(135deg,#f97316,#fbbf24)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 },
-  logoTitle: { fontSize: 14, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.2px" },
-  nav: { padding: "8px 0", flex: 1 },
-  navItem: { display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", fontSize: 12, color: "#94a3b8", cursor: "pointer" },
-  navActive: { display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", fontSize: 12, color: "#60a5fa", cursor: "pointer", background: "#1e2a3e", borderLeft: "2px solid #3b82f6" },
-  qiBox: { margin: "0 10px 12px", background: "#131720", border: "1px solid #1e2535", borderRadius: 8, padding: 12 },
-  main: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" },
-  topbar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px 12px", borderBottom: "1px solid #1e2535", background: "#0f1117" },
-  tabs: { display: "flex", padding: "0 20px", borderBottom: "1px solid #1e2535", background: "#0f1117" },
+  app: { display: "flex", minHeight: "100vh", fontFamily: FONT, fontSize: 13, background: C.bg, color: C.textPrimary },
+  main: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflowY: "auto", overflowX: "hidden" },
+  topbar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px 12px", borderBottom: `1px solid ${C.panelBorder}`, background: C.bg, flexWrap: "wrap", gap: 12 },
+  tabs: { display: "flex", padding: "0 20px", borderBottom: `1px solid ${C.panelBorder}`, background: C.bg, flexWrap: "wrap" },
   tab: { padding: "10px 16px", fontSize: 13, color: "#64748b", cursor: "pointer", borderBottom: "2px solid transparent", marginBottom: -1 },
   tabActive: { padding: "10px 16px", fontSize: 13, color: "#60a5fa", cursor: "pointer", borderBottom: "2px solid #3b82f6", marginBottom: -1 },
-  content: { flex: 1, display: "flex", overflow: "hidden" },
-  center: { flex: 1, overflowY: "auto", padding: "16px 16px 16px 20px", display: "flex", flexDirection: "column", gap: 14 },
-  rightPanel: { width: 230, minWidth: 230, borderLeft: "1px solid #1e2535", overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 14 },
-  card: { background: "#131720", border: "1px solid #1e2535", borderRadius: 8, padding: 14 },
+  content: { flex: 1, display: "flex", minHeight: 0 },
+  center: { flex: 1, padding: "16px 16px 16px 20px", display: "flex", flexDirection: "column", gap: 14, minWidth: 0 },
+  rightPanel: { width: 230, minWidth: 230, borderLeft: `1px solid ${C.panelBorder}`, padding: 14, display: "flex", flexDirection: "column", gap: 14 },
+  card: { background: C.panel, border: `1px solid ${C.panelBorder}`, borderRadius: 8, padding: 14 },
   cardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   cardTitle: { fontSize: 13, fontWeight: 600, color: "#e2e8f0", display: "flex", alignItems: "center", gap: 6 },
   infoDot: { width: 16, height: 16, borderRadius: "50%", border: "1px solid #3b4a6b", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#64748b", cursor: "pointer" },
@@ -368,85 +362,18 @@ const S = {
   tbBtn: { display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, fontSize: 12, cursor: "pointer", border: "1px solid #2d3748", background: "#1a2232", color: "#94a3b8" },
 };
 
-const ROWS = ["Spectral Flux (Soft)", "Spectral Flux (Hard)", "Hardening Evolution", "Temporal Gradients", "Wavelet Features", "Statistical Moments", "Peak Characteristics", "Background Features"];
-const EVENTS = [
-  { rank: 1, id: "EVT-2024-06-18-122200", dt: "2024-06-18 12:22:00", cls: "C2.4", sim: 0.92, anom: 0.15, lead: "12 min", clsCat: "C" },
-  { rank: 2, id: "EVT-2024-06-18-110200", dt: "2024-06-18 11:02:00", cls: "C1.8", sim: 0.88, anom: 0.21, lead: "9 min", clsCat: "C" },
-  { rank: 3, id: "EVT-2024-06-03-094100", dt: "2024-06-03 09:41:00", cls: "C3.1", sim: 0.84, anom: 0.17, lead: "14 min", clsCat: "C" },
-  { rank: 4, id: "EVT-2024-06-03-101500", dt: "2024-06-03 10:15:00", cls: "B9.7", sim: 0.79, anom: 0.24, lead: "8 min", clsCat: "B" },
-  { rank: 5, id: "EVT-2024-05-22-085000", dt: "2024-05-22 08:50:00", cls: "B7.5", sim: 0.74, anom: 0.28, lead: "11 min", clsCat: "B" },
-];
-const CONTRIBS = [
-  { label: "Spectral Flux (Soft)", pct: 18.7, color: "#3b82f6" },
-  { label: "Spectral Flux (Hard)", pct: 21.3, color: "#22c55e" },
-  { label: "Hardening Evolution", pct: 17.6, color: "#22c55e" },
-  { label: "Temporal Gradients",  pct: 14.2, color: "#22c55e" },
-  { label: "Wavelet Features",    pct: 12.1, color: "#f59e0b" },
-  { label: "Statistical Moments", pct:  9.8, color: "#f97316" },
-  { label: "Peak Characteristics",pct:  4.1, color: "#ec4899" },
-  { label: "Background Features", pct:  2.2, color: "#8b5cf6" },
-];
-const NAV_ITEMS = [
-  { icon: "⊞", label: "Dashboard" },
-  { icon: "〜", label: "Light Curves" },
-  { icon: "⟶", label: "Hardening & Forecast" },
-  { icon: "⬡", label: "Flare Genome", active: true },
-  { icon: "⊙", label: "Solar Memory DB" },
-  { icon: "🔔", label: "Alerts" },
-  { icon: "📄", label: "Reports" },
-  { icon: "⚙", label: "Settings" },
-  { icon: "ℹ", label: "About" },
-];
+
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function FlareGenomeDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("Genome View");
   const tabs = ["Genome View", "Similarity Matches", "PCA Projection", "Distribution", "Statistics"];
 
   return (
     <div style={S.app}>
       {/* ── Sidebar ── */}
-      <div style={S.sidebar}>
-        <div style={S.logoArea}>
-          <div style={S.logoRow}>
-            <div style={S.logoSun}>☀</div>
-            <div style={S.logoTitle}>SolarGuard</div>
-          </div>
-          <div style={{ fontSize: 10, color: "#94a3b8", lineHeight: 1.4, marginLeft: 40 }}>
-            Solar Flare Forecasting &amp;<br />Nowcasting System
-          </div>
-          <div style={{ fontSize: 10, color: "#4ade80", marginLeft: 40, marginTop: 2 }}>
-            Aditya-L1 (SoLEXS + HEL1OS)
-          </div>
-        </div>
-
-        <div style={S.nav}>
-          {NAV_ITEMS.map((item) => (
-            <div key={item.label} style={item.active ? S.navActive : S.navItem}>
-              <span style={{ fontSize: 15, width: 16 }}>{item.icon}</span>
-              {item.label}
-            </div>
-          ))}
-        </div>
-
-        {/* Quick Info */}
-        <div style={S.qiBox}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>Quick Info</div>
-          {[
-            { label: "Selected Event", val: "2024-09-02 12:15:30 IST", style: {} },
-            { label: "Predicted Class", val: "C-Class", style: { color: "#f97316", fontWeight: 600 } },
-            { label: "Probability", val: "44.7%", style: { color: "#f97316", fontWeight: 600 } },
-            { label: "Anomaly Score", val: "0.18", style: { color: "#22d3ee", fontWeight: 600 } },
-            { label: "Lead Time (Est.)", val: "10 min", style: { color: "#4ade80", fontWeight: 700, fontSize: 14 } },
-            { label: "Data Source", val: "SoLEXS + HEL1OS", style: {} },
-          ].map((r) => (
-            <div key={r.label} style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: "#64748b", marginBottom: 1 }}>{r.label}</div>
-              <div style={{ fontSize: 12, color: "#e2e8f0", ...r.style }}>{r.val}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <Sidebar activePage="Flare Genome" />
 
       {/* ── Main ── */}
       <div style={S.main}>
@@ -457,9 +384,9 @@ export default function FlareGenomeDashboard() {
             <div style={{ fontSize: 12, color: "#64748b" }}>64-D Spectral Fingerprint of Solar Flare Event</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={S.tbBtn}>📅 2024-09-02 ⟳</div>
-            <div style={S.tbBtn}>⏱ 12:15:30 IST ▾</div>
-            <div style={{ ...S.tbBtn, background: "#1e3a5f", color: "#60a5fa", borderColor: "#2563eb" }}>⟳ Compare Events</div>
+            <div style={S.tbBtn} onClick={() => toast("Toolbar Action")} >📅 2024-09-02 ⟳</div>
+            <div style={S.tbBtn} onClick={() => toast("Toolbar Action")} >⏱ 12:15:30 IST ▾</div>
+            <div style={{ ...S.tbBtn, background: "#1e3a5f", color: "#60a5fa", borderColor: "#2563eb" }} onClick={() => toast("Compare Events")} >⟳ Compare Events</div>
           </div>
         </div>
 
@@ -473,16 +400,17 @@ export default function FlareGenomeDashboard() {
         {/* Content */}
         <div style={S.content}>
           <div style={S.center}>
-
-            {/* Heatmap card */}
+            {activeTab === "Genome View" ? (
+              <>
+                {/* Heatmap card */}
             <div style={S.card}>
               <div style={S.cardHeader}>
                 <div style={S.cardTitle}>
                   Flare Genome (64-D Fingerprint) <span style={S.infoDot}>i</span>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <div style={S.actBtn}>⬇ Export Genome</div>
-                  <div style={S.actBtn}>View Options ▾</div>
+                  <div style={S.actBtn} onClick={() => toast("Action")} >⬇ Export Genome</div>
+                  <div style={S.actBtn} onClick={() => toast("Action")} >View Options ▾</div>
                 </div>
               </div>
 
@@ -593,8 +521,8 @@ export default function FlareGenomeDashboard() {
                   Genome Evolution (Sliding Window) <span style={S.infoDot}>i</span>
                 </div>
               </div>
-              <div style={{ position: "relative", paddingLeft: 22 }}>
-                <div style={{ position: "absolute", left: -6, top: "50%", transform: "translateY(-50%) rotate(-90deg)", fontSize: 10, color: "#64748b", whiteSpace: "nowrap", transformOrigin: "center" }}>
+              <div style={{ position: "relative", paddingLeft: 26, minHeight: 120 }}>
+                <div style={{ position: "absolute", left: -10, top: "45%", transform: "translateY(-50%) rotate(-90deg)", fontSize: 10, color: "#64748b", whiteSpace: "nowrap", transformOrigin: "center" }}>
                   Anomaly Score
                 </div>
                 <EvolutionChart />
@@ -604,6 +532,12 @@ export default function FlareGenomeDashboard() {
                 <div style={{ textAlign: "center", fontSize: 10, color: "#64748b", marginTop: 2 }}>Time (IST)</div>
               </div>
             </div>
+            </>
+            ) : (
+              <div style={{display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: 14}}>
+                Content for "{activeTab}" is currently under construction.
+              </div>
+            )}
           </div>
 
           {/* ── Right Panel ── */}
@@ -677,7 +611,7 @@ export default function FlareGenomeDashboard() {
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0", marginBottom: 8 }}>Actions</div>
               {["⬇ Export Genome Data", "⬜ Download Heatmap", "◎ View in 3D (PCA)", "＋ Add to Memory DB"].map((a) => (
-                <div key={a} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 6, border: "1px solid #1e2535", background: "#0f1117", color: "#94a3b8", fontSize: 11, cursor: "pointer", marginBottom: 6 }}>
+                <div key={a} onClick={() => toast(a.replace(/^[^\s]+\s/, "").trim() + "...")} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 6, border: "1px solid #1e2535", background: "#0f1117", color: "#94a3b8", fontSize: 11, cursor: "pointer", marginBottom: 6 }}>
                   {a}
                 </div>
               ))}

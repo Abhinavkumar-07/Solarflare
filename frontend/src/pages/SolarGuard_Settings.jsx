@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Sidebar from "../components/Sidebar";
+import { useNavigate } from "react-router-dom";
+import { toast } from "../components/Toast";
 import {
   Sun,
   LayoutDashboard,
@@ -54,13 +57,14 @@ function Row({ label, children }) {
   );
 }
 
-function SelectControl({ value, options, width = "w-36" }) {
+function SelectControl({ value, onChange, options, width = "w-36" }) {
   const list = options.includes(value) ? options : [value, ...options];
   return (
     <div className={`relative ${width}`}>
       <select
-        defaultValue={value}
-        className="w-full appearance-none rounded-md border border-slate-700 bg-slate-950/70 py-1.5 pl-3 pr-7 text-[12.5px] text-slate-200 focus:border-blue-500 focus:outline-none"
+        value={value}
+        onChange={(e) => onChange && onChange(e.target.value)}
+        className="w-full appearance-none rounded-md border border-slate-700 bg-[#0a0e1a]/70 py-1.5 pl-3 pr-7 text-[12.5px] text-slate-200 focus:border-blue-500 focus:outline-none"
       >
         {list.map((o) => (
           <option key={o}>{o}</option>
@@ -71,14 +75,15 @@ function SelectControl({ value, options, width = "w-36" }) {
   );
 }
 
-function NumberField({ value, suffix, width = "w-24" }) {
+function NumberField({ value, onChange, suffix, width = "w-24" }) {
   return (
     <div
-      className={`flex items-center ${width} overflow-hidden rounded-md border border-slate-700 bg-slate-950/70`}
+      className={`flex items-center ${width} overflow-hidden rounded-md border border-slate-700 bg-[#0a0e1a]/70`}
     >
       <input
         type="text"
-        defaultValue={value}
+        value={value}
+        onChange={(e) => onChange && onChange(e.target.value)}
         className="w-full bg-transparent px-3 py-1.5 text-[12.5px] text-slate-200 focus:outline-none"
       />
       {suffix && <span className="pr-3 text-[11.5px] text-slate-500">{suffix}</span>}
@@ -86,11 +91,12 @@ function NumberField({ value, suffix, width = "w-24" }) {
   );
 }
 
-function Slider({ defaultValue, min = 0, max = 1, step = 0.01 }) {
+function Slider({ value, onChange, min = 0, max = 1, step = 0.01 }) {
   return (
     <input
       type="range"
-      defaultValue={defaultValue}
+      value={value}
+      onChange={(e) => onChange && onChange(parseFloat(e.target.value))}
       min={min}
       max={max}
       step={step}
@@ -117,9 +123,10 @@ function Card({ children, className = "" }) {
   );
 }
 
-function NavItem({ icon: Icon, label, active }) {
+function NavItem({ icon: Icon, label, active, onClick }) {
   return (
     <div
+      onClick={onClick}
       className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] cursor-pointer transition-colors ${
         active
           ? "bg-blue-600 text-white"
@@ -132,9 +139,10 @@ function NavItem({ icon: Icon, label, active }) {
   );
 }
 
-function TabItem({ label, active }) {
+function TabItem({ label, active, onClick }) {
   return (
     <button
+      onClick={onClick}
       className={`relative px-1 pb-3 text-[13.5px] font-medium transition-colors ${
         active ? "text-blue-400" : "text-slate-400 hover:text-slate-200"
       }`}
@@ -151,68 +159,94 @@ const PALETTE = ["#3b82f6", "#22d3ee", "#22c55e", "#eab308", "#f97316", "#ef4444
 
 /* --------------------------------- screen -------------------------------- */
 
+const defaultSettings = {
+    theme: "Dark",
+    language: "English",
+    timeFormat: "24 Hour",
+    timezone: "Asia/Kolkata (IST)",
+    dateFormat: "YYYY-MM-DD",
+    refreshInterval: "10 sec",
+    soundNotifications: true,
+    compactMode: false,
+    defaultDashboardView: "Overview",
+    defaultTimeRange: "Last 2 Hours",
+    autoRefresh: true,
+    showDataPoints: true,
+    logScaleForLightCurves: true,
+    showBackgroundLevel: true,
+    enableAlerts: true,
+    enableEmailAlerts: true,
+    enableDesktopNotifications: true,
+    enableSoundAlerts: true,
+    alertCooldownPeriod: "5 min",
+    minimumFlareClassToAlert: "B-Class",
+    alertLeadTimeThreshold: "5 min",
+    escalateToHighIfProb: 0.70,
+    spectralHardeningThreshold: "1.000",
+    forecastProbabilityWatch: "30",
+    forecastProbabilityWarning: "60",
+    forecastProbabilityCritical: "80",
+    anomalyScoreThreshold: "0.20",
+    maxLeadTimeMin: "60",
+    minDataPointsRequired: "100",
+    primaryDataSource: "Aditya-L1",
+    solexsInstrument: "Active",
+    heliosInstrument: "Active",
+    dataLatencyTolerance: "5 sec",
+    dataQualityCheck: true,
+    backupDataSource: "None",
+    activeModel: "Flare Genome v2.1",
+    modelConfidenceThreshold: 0.70,
+    enableAnomalyDetection: true,
+    enableTransferLearning: true,
+    autoModelUpdate: false,
+    modelRetrainFrequency: "Weekly",
+    autoStoreEvents: true,
+    minSimilarityScoreToStore: 0.60,
+    maxDatabaseSize: "Unlimited",
+    autoCleanupOldEvents: true,
+    eventsOlderThan: "5 Years",
+    backupFrequency: "Daily",
+    defaultExportFormat: "CSV",
+    includePlotsInReports: true,
+    compressExports: true,
+    autoExportReports: "Weekly",
+    exportDestination: "Local"
+};
+
 export default function SolarGuardSettings() {
+  const navigate = useNavigate();
   const [activeColor, setActiveColor] = useState(PALETTE[0]);
+
+  const [activeTab, setActiveTab] = useState("General");
+  const [settings, setSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sg_settings");
+      if (saved) return { ...defaultSettings, ...JSON.parse(saved) };
+    } catch (e) {}
+    return defaultSettings;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("sg_settings", JSON.stringify(settings));
+    document.documentElement.setAttribute("data-theme", settings.theme);
+  }, [settings]);
+
+  const updateSetting = (key, val) => setSettings(s => ({ ...s, [key]: val }));
+
+  const handleAction = (msg) => {
+    toast(msg, "success");
+  };
+  
+  const appStyle = { fontFamily: "'Inter', system-ui, sans-serif" };
 
   return (
     <div
-      className="flex h-screen w-full bg-slate-950 text-slate-200"
-      style={{ fontFamily: "Inter, system-ui, sans-serif" }}
+      style={{ display:"flex", minHeight:"100vh", width:"100%", background:"var(--sg-bg)", color:"var(--sg-text-primary)", ...appStyle }}
     >
       {/* ---------------------------- Sidebar ---------------------------- */}
-      <aside className="flex w-60 flex-shrink-0 flex-col border-r border-slate-800 bg-slate-950 overflow-y-auto">
-        <div className="flex items-start gap-3 px-5 pt-6 pb-5">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-amber-500 shadow-lg shadow-orange-500/20">
-            <Sun className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-[15px] font-bold leading-tight text-white">SolarGuard</h1>
-            <p className="mt-0.5 text-[10.5px] leading-tight text-slate-500">
-              Solar Flare Forecasting &amp; Nowcasting System
-            </p>
-            <p className="mt-1 text-[10.5px] font-medium text-emerald-400">
-              Aditya-L1 (SoLEXS + HEL1OS)
-            </p>
-          </div>
-        </div>
+      <Sidebar activePage="Settings" />
 
-        <nav className="flex-1 space-y-1 px-3">
-          <NavItem icon={LayoutDashboard} label="Dashboard" />
-          <NavItem icon={Activity} label="Light Curves" />
-          <NavItem icon={TrendingUp} label="Hardening & Forecast" />
-          <NavItem icon={Dna} label="Flare Genome" />
-          <NavItem icon={Database} label="Solar Memory DB" />
-          <NavItem icon={Bell} label="Alerts" />
-          <NavItem icon={FileText} label="Reports" />
-          <NavItem icon={SettingsIcon} label="Settings" active />
-          <NavItem icon={Info} label="About" />
-        </nav>
-
-        <div className="mx-3 mb-4 space-y-3 rounded-xl border border-slate-800 bg-slate-900/50 p-3.5">
-          <div>
-            <p className="text-[10.5px] text-slate-500">System Status</p>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              <span className="text-[12.5px] font-medium text-emerald-400">Normal</span>
-            </div>
-          </div>
-          <div>
-            <p className="text-[10.5px] text-slate-500">Data Source</p>
-            <p className="mt-0.5 text-[12px] font-medium text-blue-400">
-              Aditya-L1 (SoLEXS + HEL1OS)
-            </p>
-          </div>
-          <div>
-            <p className="text-[10.5px] text-slate-500">Last Updated</p>
-            <p className="mt-0.5 text-[12px] text-slate-300">2024-09-02 12:45:30 IST</p>
-          </div>
-          <button className="flex w-full items-center justify-center gap-2 rounded-md border border-slate-700 py-1.5 text-[12px] text-slate-300 hover:bg-slate-800">
-            <RefreshCw className="h-3.5 w-3.5" />
-            Check for Updates
-          </button>
-          <p className="text-center text-[10.5px] text-slate-600">v2.1.0</p>
-        </div>
-      </aside>
 
       {/* ----------------------------- Main ------------------------------ */}
       <div className="flex flex-1 flex-col overflow-y-auto">
@@ -225,12 +259,12 @@ export default function SolarGuardSettings() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-[13px] text-slate-300">
+            <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-[13px] text-slate-200">
               <Calendar className="h-3.5 w-3.5 text-slate-500" />
               2024-09-02
               <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-[13px] text-slate-300">
+            <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-[13px] text-slate-200">
               <Clock className="h-3.5 w-3.5 text-slate-500" />
               12:45:30 IST
               <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
@@ -245,14 +279,16 @@ export default function SolarGuardSettings() {
         {/* Tabs */}
         <div className="mt-5 flex items-center justify-between border-b border-slate-800 px-8">
           <div className="flex gap-7">
-            <TabItem label="General" active />
-            <TabItem label="Data & Sources" />
-            <TabItem label="Models & Parameters" />
-            <TabItem label="Alerts & Notifications" />
-            <TabItem label="Visualization" />
-            <TabItem label="System" />
+            <TabItem label="General" active={activeTab === "General"} onClick={() => setActiveTab("General")} />
+            <TabItem label="Data & Sources" active={activeTab === "Data & Sources"} onClick={() => setActiveTab("Data & Sources")} />
+            <TabItem label="Models & Parameters" active={activeTab === "Models & Parameters"} onClick={() => setActiveTab("Models & Parameters")} />
+            <TabItem label="Alerts & Notifications" active={activeTab === "Alerts & Notifications"} onClick={() => setActiveTab("Alerts & Notifications")} />
+            <TabItem label="Visualization" active={activeTab === "Visualization"} onClick={() => setActiveTab("Visualization")} />
+            <TabItem label="System" active={activeTab === "System"} onClick={() => setActiveTab("System")} />
           </div>
-          <button className="mb-2 flex items-center gap-2 rounded-md border border-slate-700 px-3 py-1.5 text-[12.5px] text-slate-300 hover:bg-slate-800">
+          <button
+            onClick={() => { setSettings(defaultSettings); toast("Settings restored to defaults", "success"); }}
+            className="mb-2 flex items-center gap-2 rounded-md border border-slate-700 px-3 py-1.5 text-[12.5px] text-slate-200 hover:bg-slate-800">
             <RotateCcw className="h-3.5 w-3.5" />
             Restore Defaults
           </button>
@@ -265,50 +301,50 @@ export default function SolarGuardSettings() {
             <Card>
               <CardHeader icon={Monitor} title="Application Preferences" color="text-slate-400" />
               <Row label="Theme">
-                <SelectControl value="Dark" options={["Light"]} />
-              </Row>
+<SelectControl value={settings.theme} options={["Light"]}  onChange={v => updateSetting("theme", v)} />
+</Row>
               <Row label="Language">
-                <SelectControl value="English" options={["Hindi"]} />
-              </Row>
+<SelectControl value={settings.language} options={["Hindi"]}  onChange={v => updateSetting("language", v)} />
+</Row>
               <Row label="Time Format">
-                <SelectControl value="24 Hour" options={["12 Hour"]} />
-              </Row>
+<SelectControl value={settings.timeFormat} options={["12 Hour"]}  onChange={v => updateSetting("timeFormat", v)} />
+</Row>
               <Row label="Timezone">
-                <SelectControl value="Asia/Kolkata (IST)" options={["UTC"]} />
-              </Row>
+<SelectControl value={settings.timezone} options={["UTC"]}  onChange={v => updateSetting("timezone", v)} />
+</Row>
               <Row label="Date Format">
-                <SelectControl value="YYYY-MM-DD" options={["DD-MM-YYYY"]} />
-              </Row>
+<SelectControl value={settings.dateFormat} options={["DD-MM-YYYY"]}  onChange={v => updateSetting("dateFormat", v)} />
+</Row>
               <Row label="Refresh Interval">
-                <SelectControl value="10 sec" options={["30 sec", "60 sec"]} />
-              </Row>
+<SelectControl value={settings.refreshInterval} options={["30 sec", "60 sec"]}  onChange={v => updateSetting("refreshInterval", v)} />
+</Row>
               <Row label="Sound Notifications">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.soundNotifications} onChange={v => updateSetting("soundNotifications", v)} />
               </Row>
               <Row label="Compact Mode">
-                <Toggle checked={false} onChange={() => {}} />
+                <Toggle checked={settings.compactMode} onChange={v => updateSetting("compactMode", v)} />
               </Row>
             </Card>
 
             <Card>
               <CardHeader icon={TrendingUp} title="Display & Visualization" color="text-blue-400" />
               <Row label="Default Dashboard View">
-                <SelectControl value="Overview" options={["Detailed"]} />
-              </Row>
+<SelectControl value={settings.defaultDashboardView} options={["Detailed"]}  onChange={v => updateSetting("defaultDashboardView", v)} />
+</Row>
               <Row label="Default Time Range">
-                <SelectControl value="Last 2 Hours" options={["Last 6 Hours"]} />
-              </Row>
+<SelectControl value={settings.defaultTimeRange} options={["Last 6 Hours"]}  onChange={v => updateSetting("defaultTimeRange", v)} />
+</Row>
               <Row label="Auto Refresh">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.autoRefresh} onChange={v => updateSetting("autoRefresh", v)} />
               </Row>
               <Row label="Show Data Points">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.showDataPoints} onChange={v => updateSetting("showDataPoints", v)} />
               </Row>
               <Row label="Log Scale for Light Curves">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.logScaleForLightCurves} onChange={v => updateSetting("logScaleForLightCurves", v)} />
               </Row>
               <Row label="Show Background Level">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.showBackgroundLevel} onChange={v => updateSetting("showBackgroundLevel", v)} />
               </Row>
               <div className="pt-2">
                 <p className="mb-2 text-[12.5px] text-slate-400">Color Palette</p>
@@ -330,31 +366,31 @@ export default function SolarGuardSettings() {
             <Card>
               <CardHeader icon={Bell} title="Alerts & Notifications" color="text-amber-400" />
               <Row label="Enable Alerts">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.enableAlerts} onChange={v => updateSetting("enableAlerts", v)} />
               </Row>
               <Row label="Enable Email Alerts">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.enableEmailAlerts} onChange={v => updateSetting("enableEmailAlerts", v)} />
               </Row>
               <Row label="Enable Desktop Notifications">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.enableDesktopNotifications} onChange={v => updateSetting("enableDesktopNotifications", v)} />
               </Row>
               <Row label="Enable Sound Alerts">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.enableSoundAlerts} onChange={v => updateSetting("enableSoundAlerts", v)} />
               </Row>
               <Row label="Alert Cooldown Period">
-                <SelectControl value="5 min" options={["10 min"]} width="w-24" />
-              </Row>
+<SelectControl value={settings.alertCooldownPeriod} options={["10 min"]} width="w-24"  onChange={v => updateSetting("alertCooldownPeriod", v)} />
+</Row>
               <Row label="Minimum Flare Class to Alert">
-                <SelectControl value="B-Class" options={["C-Class"]} width="w-24" />
-              </Row>
+<SelectControl value={settings.minimumFlareClassToAlert} options={["C-Class"]} width="w-24"  onChange={v => updateSetting("minimumFlareClassToAlert", v)} />
+</Row>
               <Row label="Alert Lead Time Threshold">
-                <SelectControl value="5 min" options={["10 min"]} width="w-24" />
-              </Row>
+<SelectControl value={settings.alertLeadTimeThreshold} options={["10 min"]} width="w-24"  onChange={v => updateSetting("alertLeadTimeThreshold", v)} />
+</Row>
               <div className="flex items-center justify-between pt-2">
                 <span className="text-[12.5px] text-slate-400">Escalate to High if Prob. &gt;</span>
                 <div className="flex items-center gap-2">
-                  <Slider defaultValue={0.7} />
-                  <span className="text-[12.5px] text-slate-300">70%</span>
+                  <Slider value={settings.escalateToHighIfProb} onChange={v => updateSetting("escalateToHighIfProb", v)} />
+                  <span className="text-[12.5px] text-slate-200">{Math.round(settings.escalateToHighIfProb * 100)}%</span>
                 </div>
               </div>
             </Card>
@@ -368,26 +404,26 @@ export default function SolarGuardSettings() {
                   </span>
                 }
               >
-                <NumberField value="1.000" />
+                <NumberField value={settings.spectralHardeningThreshold} onChange={v => updateSetting("spectralHardeningThreshold", v)} />
               </Row>
               <Row label="Forecast Probability (Watch)">
-                <NumberField value="30" suffix="%" />
-              </Row>
+<NumberField value={settings.forecastProbabilityWatch} suffix="%"  onChange={v => updateSetting("forecastProbabilityWatch", v)} />
+</Row>
               <Row label="Forecast Probability (Warning)">
-                <NumberField value="60" suffix="%" />
-              </Row>
+<NumberField value={settings.forecastProbabilityWarning} suffix="%"  onChange={v => updateSetting("forecastProbabilityWarning", v)} />
+</Row>
               <Row label="Forecast Probability (Critical)">
-                <NumberField value="80" suffix="%" />
-              </Row>
+<NumberField value={settings.forecastProbabilityCritical} suffix="%"  onChange={v => updateSetting("forecastProbabilityCritical", v)} />
+</Row>
               <Row label="Anomaly Score Threshold">
-                <NumberField value="0.20" />
-              </Row>
+<NumberField value={settings.anomalyScoreThreshold}  onChange={v => updateSetting("anomalyScoreThreshold", v)} />
+</Row>
               <Row label="Max Lead Time (min)">
-                <NumberField value="60" suffix="min" />
-              </Row>
+<NumberField value={settings.maxLeadTimeMin} suffix="min"  onChange={v => updateSetting("maxLeadTimeMin", v)} />
+</Row>
               <Row label="Min Data Points Required">
-                <NumberField value="100" />
-              </Row>
+<NumberField value={settings.minDataPointsRequired}  onChange={v => updateSetting("minDataPointsRequired", v)} />
+</Row>
             </Card>
           </div>
 
@@ -396,24 +432,26 @@ export default function SolarGuardSettings() {
             <Card>
               <CardHeader icon={Radio} title="Data & Sources" color="text-cyan-400" />
               <Row label="Primary Data Source">
-                <SelectControl value="Aditya-L1" options={[]} />
-              </Row>
+<SelectControl value={settings.primaryDataSource} options={[]}  onChange={v => updateSetting("primaryDataSource", v)} />
+</Row>
               <Row label="SoLEXS Instrument">
-                <SelectControl value="Active" options={["Inactive"]} />
-              </Row>
+<SelectControl value={settings.solexsInstrument} options={["Inactive"]}  onChange={v => updateSetting("solexsInstrument", v)} />
+</Row>
               <Row label="HEL1OS Instrument">
-                <SelectControl value="Active" options={["Inactive"]} />
-              </Row>
+<SelectControl value={settings.hel1osInstrument} options={["Inactive"]}  onChange={v => updateSetting("hel1osInstrument", v)} />
+</Row>
               <Row label="Data Latency Tolerance">
-                <SelectControl value="5 sec" options={["10 sec"]} />
-              </Row>
+<SelectControl value={settings.dataLatencyTolerance} options={["10 sec"]}  onChange={v => updateSetting("dataLatencyTolerance", v)} />
+</Row>
               <Row label="Data Quality Check">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.dataQualityCheck} onChange={v => updateSetting("dataQualityCheck", v)} />
               </Row>
               <Row label="Backup Data Source">
-                <SelectControl value="None" options={[]} />
-              </Row>
-              <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-blue-600 py-1.5 text-[12.5px] font-medium text-blue-400 hover:bg-blue-500/10">
+<SelectControl value={settings.backupDataSource} options={[]}  onChange={v => updateSetting("backupDataSource", v)} />
+</Row>
+              <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-blue-600 py-1.5 text-[12.5px] font-medium text-blue-400 hover:bg-blue-500/10"
+                onClick={() => handleAction("Testing connection to Aditya-L1 data source...")}
+              >
                 <Wifi className="h-3.5 w-3.5" />
                 Test Connection
               </button>
@@ -422,28 +460,30 @@ export default function SolarGuardSettings() {
             <Card>
               <CardHeader icon={Globe} title="Model & AI Settings" color="text-violet-400" />
               <Row label="Active Model">
-                <SelectControl value="Flare Genome v2.1" options={[]} width="w-40" />
-              </Row>
+<SelectControl value={settings.activeModel} options={[]} width="w-40"  onChange={v => updateSetting("activeModel", v)} />
+</Row>
               <div className="flex items-center justify-between py-[7px]">
                 <span className="text-[12.5px] text-slate-400">Model Confidence Threshold</span>
                 <div className="flex items-center gap-2">
-                  <Slider defaultValue={0.7} />
-                  <span className="text-[12.5px] text-slate-300">0.70</span>
+                  <Slider value={settings.modelConfidenceThreshold} onChange={v => updateSetting("modelConfidenceThreshold", v)} />
+                  <span className="text-[12.5px] text-slate-200">{settings.modelConfidenceThreshold.toFixed(2)}</span>
                 </div>
               </div>
               <Row label="Enable Anomaly Detection">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.enableAnomalyDetection} onChange={v => updateSetting("enableAnomalyDetection", v)} />
               </Row>
               <Row label="Enable Transfer Learning">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.enableTransferLearning} onChange={v => updateSetting("enableTransferLearning", v)} />
               </Row>
               <Row label="Auto Model Update">
-                <Toggle checked={false} onChange={() => {}} />
+                <Toggle checked={settings.autoModelUpdate} onChange={v => updateSetting("autoModelUpdate", v)} />
               </Row>
               <Row label="Model Retrain Frequency">
-                <SelectControl value="Weekly" options={["Monthly"]} />
-              </Row>
-              <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-violet-600 py-1.5 text-[12.5px] font-medium text-violet-400 hover:bg-violet-500/10">
+<SelectControl value={settings.modelRetrainFrequency} options={["Monthly"]}  onChange={v => updateSetting("modelRetrainFrequency", v)} />
+</Row>
+              <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-violet-600 py-1.5 text-[12.5px] font-medium text-violet-400 hover:bg-violet-500/10"
+                onClick={() => handleAction("Model retrain initiated — check back in a few minutes.")}
+              >
                 <Lock className="h-3.5 w-3.5" />
                 Retrain Now
               </button>
@@ -452,28 +492,30 @@ export default function SolarGuardSettings() {
             <Card>
               <CardHeader icon={Database} title="Solar Memory DB Settings" color="text-blue-400" />
               <Row label="Auto Store Events">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.autoStoreEvents} onChange={v => updateSetting("autoStoreEvents", v)} />
               </Row>
               <div className="flex items-center justify-between py-[7px]">
                 <span className="text-[12.5px] text-slate-400">Min Similarity Score to Store</span>
                 <div className="flex items-center gap-2">
-                  <Slider defaultValue={0.6} />
-                  <span className="text-[12.5px] text-slate-300">0.60</span>
+                  <Slider value={settings.minSimilarityScoreToStore} onChange={v => updateSetting("minSimilarityScoreToStore", v)} />
+                  <span className="text-[12.5px] text-slate-200">{settings.minSimilarityScoreToStore.toFixed(2)}</span>
                 </div>
               </div>
               <Row label="Max Database Size">
-                <SelectControl value="Unlimited" options={[]} />
-              </Row>
+<SelectControl value={settings.maxDatabaseSize} options={[]}  onChange={v => updateSetting("maxDatabaseSize", v)} />
+</Row>
               <Row label="Auto Cleanup Old Events">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.autoCleanupOldEvents} onChange={v => updateSetting("autoCleanupOldEvents", v)} />
               </Row>
               <Row label="Events Older Than">
-                <SelectControl value="5 Years" options={["1 Year"]} />
-              </Row>
+<SelectControl value={settings.eventsOlderThan} options={["1 Year"]}  onChange={v => updateSetting("eventsOlderThan", v)} />
+</Row>
               <Row label="Backup Frequency">
-                <SelectControl value="Daily" options={["Weekly"]} />
-              </Row>
-              <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-violet-600 py-1.5 text-[12.5px] font-medium text-violet-400 hover:bg-violet-500/10">
+<SelectControl value={settings.backupFrequency} options={["Weekly"]}  onChange={v => updateSetting("backupFrequency", v)} />
+</Row>
+              <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-violet-600 py-1.5 text-[12.5px] font-medium text-violet-400 hover:bg-violet-500/10"
+                onClick={() => handleAction("Database backup started.")}
+              >
                 <Database className="h-3.5 w-3.5" />
                 Backup Now
               </button>
@@ -482,21 +524,23 @@ export default function SolarGuardSettings() {
             <Card>
               <CardHeader icon={Download} title="Export & Data Management" color="text-emerald-400" />
               <Row label="Default Export Format">
-                <SelectControl value="CSV" options={["JSON"]} />
-              </Row>
+<SelectControl value={settings.defaultExportFormat} options={["JSON"]}  onChange={v => updateSetting("defaultExportFormat", v)} />
+</Row>
               <Row label="Include Plots in Reports">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.includePlotsInReports} onChange={v => updateSetting("includePlotsInReports", v)} />
               </Row>
               <Row label="Compress Exports">
-                <Toggle checked={true} onChange={() => {}} />
+                <Toggle checked={settings.compressExports} onChange={v => updateSetting("compressExports", v)} />
               </Row>
               <Row label="Auto Export Reports">
-                <SelectControl value="Weekly" options={["Monthly"]} />
-              </Row>
+<SelectControl value={settings.autoExportReports} options={["Monthly"]}  onChange={v => updateSetting("autoExportReports", v)} />
+</Row>
               <Row label="Export Destination">
-                <SelectControl value="Local" options={["Cloud"]} />
-              </Row>
-              <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-blue-600 py-1.5 text-[12.5px] font-medium text-blue-400 hover:bg-blue-500/10">
+<SelectControl value={settings.exportDestination} options={["Cloud"]}  onChange={v => updateSetting("exportDestination", v)} />
+</Row>
+              <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-blue-600 py-1.5 text-[12.5px] font-medium text-blue-400 hover:bg-blue-500/10"
+                onClick={() => handleAction("Opening export folder...")}
+              >
                 <FolderOpen className="h-3.5 w-3.5" />
                 Open Export Folder
               </button>
@@ -543,10 +587,14 @@ export default function SolarGuardSettings() {
                 These actions are irreversible. Please proceed with caution.
               </p>
               <div className="mt-4 flex gap-3">
-                <button className="flex-1 rounded-md border border-orange-600 py-1.5 text-[12.5px] font-medium text-orange-400 hover:bg-orange-500/10">
+                <button
+                  onClick={() => handleAction("Cache cleared successfully.")}
+                  className="flex-1 rounded-md border border-orange-600 py-1.5 text-[12.5px] font-medium text-orange-400 hover:bg-orange-500/10">
                   Clear All Cache
                 </button>
-                <button className="flex-1 rounded-md border border-red-600 py-1.5 text-[12.5px] font-medium text-red-400 hover:bg-red-500/10">
+                <button
+                  onClick={() => { setSettings(defaultSettings); toast("All settings have been reset.", "success"); }}
+                  className="flex-1 rounded-md border border-red-600 py-1.5 text-[12.5px] font-medium text-red-400 hover:bg-red-500/10">
                   Reset All Settings
                 </button>
               </div>
@@ -560,9 +608,7 @@ export default function SolarGuardSettings() {
             <Info className="h-3 w-3" /> All times in IST
           </span>
           <span>SolarGuard © 2025 | Built for ISRO Hackathon 2025</span>
-          <span className="flex items-center gap-1.5">
-            <Info className="h-3 w-3" /> All times in IST
-          </span>
+          <span className="w-[100px]"></span>
         </footer>
       </div>
     </div>

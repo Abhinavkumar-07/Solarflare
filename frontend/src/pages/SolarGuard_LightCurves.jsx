@@ -1,4 +1,7 @@
 import React, { useState, useMemo } from "react";
+import Sidebar from "../components/Sidebar";
+import { useNavigate } from "react-router-dom";
+import { toast } from "../components/Toast";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ReferenceLine, ReferenceArea,
@@ -8,6 +11,7 @@ import {
   Settings, Info, Calendar, Clock, RefreshCw, Download, Hand, RotateCcw,
   Maximize2, MoreHorizontal, Link2, Sun, Check,
 } from "lucide-react";
+import { COLORS as THEME_COLORS, PAGE_STYLE, MAIN_STYLE, FONT } from "../theme";
 
 /* ────────────────────────────────────────────────────────────────────────
    SolarGuard — Light Curves detail page
@@ -16,35 +20,7 @@ import {
    readouts, a metrics strip, and a 4-panel analysis row.
    ──────────────────────────────────────────────────────────────────────── */
 
-const COLORS = {
-  bg: "#0a0e1a",
-  panel: "#0f1626",
-  panelBorder: "#1c2740",
-  navActive: "#1d4ed8",
-  textPrimary: "#f1f5f9",
-  textSecondary: "#94a3b8",
-  textMuted: "#5b6b85",
-  accentGreen: "#22d97a",
-  accentBlue: "#38bdf8",
-  accentOrange: "#fb923c",
-  accentPurple: "#c084fc",
-  accentTeal: "#2dd4bf",
-  accentYellow: "#facc15",
-  accentRed: "#f87171",
-  gridLine: "#1c2740",
-};
-
-const NAV_ITEMS = [
-  { icon: LayoutDashboard, label: "Dashboard" },
-  { icon: Activity, label: "Light Curves", active: true },
-  { icon: TrendingUp, label: "Hardening & Forecast" },
-  { icon: Dna, label: "Flare Genome" },
-  { icon: Database, label: "Solar Memory DB" },
-  { icon: Bell, label: "Alerts", badge: 2 },
-  { icon: FileText, label: "Reports" },
-  { icon: Settings, label: "Settings" },
-  { icon: Info, label: "About" },
-];
+const COLORS = THEME_COLORS;
 
 const RANGE_OPTIONS = ["5m", "15m", "1h", "3h", "6h", "12h"];
 
@@ -97,7 +73,7 @@ function ChannelPill({ icon, color, label, active, onClick }) {
     <button
       onClick={onClick}
       style={{
-        display: "flex", alignItems: "center", gap: 7,
+        display: "flex", alignItems: "center", cursor: "pointer", gap: 7,
         background: active ? color + "1f" : "transparent",
         border: `1px solid ${active ? color + "70" : COLORS.panelBorder}`,
         borderRadius: 8, padding: "7px 13px", cursor: "pointer",
@@ -136,8 +112,8 @@ function Panel({ title, icon: Icon, accent, actions, children, style }) {
         display: "flex", flexDirection: "column", minWidth: 0, ...style,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", cursor: "pointer", justifyContent: "space-between", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: 8 }}>
           {Icon && <Icon size={15} color={accent || COLORS.accentBlue} strokeWidth={2} />}
           <span style={{ fontSize: 14, fontWeight: 700, color: accent || COLORS.textPrimary }}>{title}</span>
         </div>
@@ -168,7 +144,7 @@ function MetricCard({ icon: Icon, iconColor, label, value, unit, sub, subColor, 
         borderRadius: 10, padding: "14px 16px", minWidth: 0,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9 }}>
+      <div style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: 7, marginBottom: 9 }}>
         {link ? (
           <Link2 size={13} color={iconColor} strokeWidth={2.2} />
         ) : (
@@ -180,7 +156,7 @@ function MetricCard({ icon: Icon, iconColor, label, value, unit, sub, subColor, 
         <span style={{ fontSize: 19, fontWeight: 800, color: iconColor }}>{value}</span>
         {unit && <span style={{ fontSize: 11.5, color: COLORS.textMuted }}>{unit}</span>}
       </div>
-      <div style={{ fontSize: 11, color: subColor || COLORS.textMuted, marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+      <div style={{ fontSize: 11, color: subColor || COLORS.textMuted, marginTop: 4, display: "flex", alignItems: "center", cursor: "pointer", gap: 4 }}>
         {sub}
       </div>
     </div>
@@ -190,6 +166,7 @@ function MetricCard({ icon: Icon, iconColor, label, value, unit, sub, subColor, 
 // ── Main page ─────────────────────────────────────────────────────────
 
 export default function LightCurvesPage() {
+  const navigate = useNavigate();
   const [range, setRange] = useState("15m");
   const [autoScale, setAutoScale] = useState(true);
   const [activeChannels, setActiveChannels] = useState({
@@ -228,110 +205,18 @@ export default function LightCurvesPage() {
   }));
 
   return (
-    <div
-      style={{
-        background: COLORS.bg, color: COLORS.textPrimary,
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-        minHeight: "100vh", display: "flex",
-      }}
-    >
+    <div style={PAGE_STYLE}>
       {/* ── Left nav rail ── */}
-      <aside
-        style={{
-          width: 232, flexShrink: 0, borderRight: `1px solid ${COLORS.panelBorder}`,
-          padding: "20px 14px", display: "flex", flexDirection: "column", background: "#0c1220",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 6px 4px" }}>
-          <div
-            style={{
-              width: 38, height: 38, borderRadius: 10,
-              background: "linear-gradient(135deg, #fbbf24, #f97316)",
-              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-            }}
-          >
-            <Sun size={20} color="#1a1206" strokeWidth={2.5} />
-          </div>
-          <div style={{ fontSize: 16, fontWeight: 700 }}>SolarGuard</div>
-        </div>
-        <div style={{ fontSize: 10.5, color: COLORS.textSecondary, padding: "6px 6px 1px", lineHeight: 1.5 }}>
-          Aditya-L1 Flare Nowcasting
-        </div>
-        <div style={{ fontSize: 10.5, color: COLORS.accentGreen, padding: "0 6px 18px", fontWeight: 600 }}>
-          (SoLEXS + HEL1OS)
-        </div>
+      <Sidebar activePage="Light Curves" />
 
-        <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.label}
-              style={{
-                display: "flex", alignItems: "center", gap: 11, padding: "9px 12px",
-                borderRadius: 8, border: "none",
-                background: item.active ? COLORS.navActive : "transparent",
-                color: item.active ? "#fff" : COLORS.textSecondary,
-                fontSize: 13, fontWeight: item.active ? 600 : 500,
-                cursor: "pointer", textAlign: "left", width: "100%", position: "relative",
-              }}
-              onMouseEnter={(e) => { if (!item.active) e.currentTarget.style.background = "#141d33"; }}
-              onMouseLeave={(e) => { if (!item.active) e.currentTarget.style.background = "transparent"; }}
-            >
-              <item.icon size={16} strokeWidth={2} />
-              {item.label}
-              {item.badge && (
-                <span
-                  style={{
-                    marginLeft: "auto", background: COLORS.accentRed, color: "#fff",
-                    fontSize: 10, fontWeight: 700, borderRadius: 99, padding: "1px 6px",
-                  }}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
-
-        <div style={{ flex: 1 }} />
-
-        <div style={{ background: "#0f1d18", border: `1px solid ${COLORS.accentGreen}33`, borderRadius: 10, padding: "14px 14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.textPrimary }}>System Status</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-            <span style={{ width: 7, height: 7, borderRadius: 99, background: COLORS.accentGreen }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.accentGreen }}>Normal</span>
-          </div>
-          <div
-            style={{
-              height: 70, borderRadius: 8, marginBottom: 10,
-              background: "linear-gradient(160deg, #0a3d5c 0%, #062236 60%, #04101c 100%)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >
-            <svg width="44" height="36" viewBox="0 0 44 36" fill="none">
-              <rect x="18" y="14" width="8" height="10" rx="1.5" fill="#cbd5e1" />
-              <rect x="2" y="16" width="13" height="6" rx="1" fill="#38bdf8" opacity="0.85" />
-              <rect x="29" y="16" width="13" height="6" rx="1" fill="#38bdf8" opacity="0.85" />
-              <circle cx="22" cy="11" r="3" fill="#94a3b8" />
-            </svg>
-          </div>
-          <div style={{ fontSize: 11, color: COLORS.textSecondary, marginBottom: 2 }}>Data Source</div>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: COLORS.accentGreen, marginBottom: 10 }}>Aditya-L1</div>
-          <div style={{ fontSize: 10.5, color: COLORS.textMuted }}>Last Updated</div>
-          <div style={{ fontSize: 11.5, color: COLORS.textSecondary, fontWeight: 600 }}>12:45:30 IST</div>
-        </div>
-      </aside>
-
-      {/* ── Main content ── */}
-      <main style={{ flex: 1, padding: "20px 24px", minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+      <main style={{ ...MAIN_STYLE, padding: "20px 24px", gap: 16, display: "flex", flexDirection: "column" }}>
         {/* Header row */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
             <div
               style={{
                 width: 38, height: 38, borderRadius: 9, background: COLORS.accentBlue + "1a",
-                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2,
+                display: "flex", alignItems: "center", cursor: "pointer", justifyContent: "center", flexShrink: 0, marginTop: 2,
               }}
             >
               <Activity size={19} color={COLORS.accentBlue} />
@@ -344,12 +229,12 @@ export default function LightCurvesPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <FieldPicker icon={Calendar} value="2024-09-02" />
-            <FieldPicker icon={Clock} value="11:30 - 12:45 IST" />
+          <div style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: 10, flexWrap: "wrap" }}>
+            <FieldPicker icon={Calendar} value="2024-09-02" onClick={() => toast("Select Date")} />
+            <FieldPicker icon={Clock} value="11:30 - 12:45 IST" onClick={() => toast("Select Time")} />
             <button
               style={{
-                display: "flex", alignItems: "center", gap: 6, background: "#0f3322",
+                display: "flex", alignItems: "center", cursor: "pointer", gap: 6, background: "#0f3322",
                 border: `1px solid ${COLORS.accentGreen}55`, borderRadius: 8, padding: "9px 14px",
                 color: COLORS.accentGreen, fontSize: 12.5, fontWeight: 700, cursor: "pointer",
               }}
@@ -360,7 +245,7 @@ export default function LightCurvesPage() {
             <button
               style={{
                 width: 36, height: 36, borderRadius: 8, border: `1px solid ${COLORS.panelBorder}`,
-                background: COLORS.panel, display: "flex", alignItems: "center", justifyContent: "center",
+                background: COLORS.panel, display: "flex", alignItems: "center", cursor: "pointer", justifyContent: "center",
                 color: COLORS.textSecondary, cursor: "pointer",
               }}
             >
@@ -368,7 +253,7 @@ export default function LightCurvesPage() {
             </button>
             <button
               style={{
-                display: "flex", alignItems: "center", gap: 7, background: COLORS.navActive,
+                display: "flex", alignItems: "center", cursor: "pointer", gap: 7, background: COLORS.navActive,
                 border: "none", borderRadius: 8, padding: "9px 16px", color: "#fff",
                 fontSize: 12.5, fontWeight: 700, cursor: "pointer",
               }}
@@ -380,7 +265,7 @@ export default function LightCurvesPage() {
         </div>
 
         {/* Channel toggle pills + range tabs */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", cursor: "pointer", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <ChannelPill icon="dot" color={COLORS.accentBlue} label="SoLEXS (0.5 – 4 keV)" active={activeChannels.solexs}
               onClick={() => setActiveChannels((s) => ({ ...s, solexs: !s.solexs }))} />
@@ -392,8 +277,8 @@ export default function LightCurvesPage() {
               onClick={() => setActiveChannels((s) => ({ ...s, all: !s.all }))} />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: 8 }}>
               <span style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: 600 }}>Auto Scale</span>
               <Toggle checked={autoScale} onChange={() => setAutoScale((v) => !v)} />
             </div>
@@ -413,7 +298,7 @@ export default function LightCurvesPage() {
             accent={COLORS.accentBlue}
             actions={<><Hand size={14} /><RotateCcw size={14} /><Maximize2 size={13} /><MoreHorizontal size={15} /></>}
           >
-            <div style={{ fontSize: 11, color: COLORS.accentBlue, marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{ fontSize: 11, color: COLORS.accentBlue, marginBottom: 6, display: "flex", alignItems: "center", cursor: "pointer", gap: 5 }}>
               <Activity size={11} /> SoLEXS SDD2
             </div>
             <ResponsiveContainer width="100%" height="78%">
@@ -436,7 +321,7 @@ export default function LightCurvesPage() {
             accent={COLORS.accentOrange}
             actions={<><Hand size={14} /><RotateCcw size={14} /><Maximize2 size={13} /><MoreHorizontal size={15} /></>}
           >
-            <div style={{ fontSize: 11, color: COLORS.accentOrange, marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{ fontSize: 11, color: COLORS.accentOrange, marginBottom: 6, display: "flex", alignItems: "center", cursor: "pointer", gap: 5 }}>
               <Activity size={11} /> CZT1 + CZT2
             </div>
             <ResponsiveContainer width="100%" height="78%">
@@ -515,7 +400,7 @@ export default function LightCurvesPage() {
           <Panel title="Event Markers" icon={Bell} accent={COLORS.accentPurple}>
             <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
               {EVENT_MARKERS.map((e) => (
-                <div key={e.time} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <div key={e.time} style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: 9 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 99, background: e.color, flexShrink: 0 }} />
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 11, color: COLORS.textMuted }}>{e.time}</div>
@@ -546,11 +431,11 @@ export default function LightCurvesPage() {
 
 // ── Sub-components ──────────────────────────────────────────────────────
 
-function FieldPicker({ icon: Icon, value }) {
+function FieldPicker({ icon: Icon, value, onClick }) {
   return (
-    <div
+    <div onClick={onClick}
       style={{
-        display: "flex", alignItems: "center", gap: 8, background: COLORS.panel,
+        display: "flex", alignItems: "center", cursor: "pointer", gap: 8, background: COLORS.panel,
         border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "9px 13px",
         fontSize: 12.5, color: COLORS.textPrimary,
       }}
@@ -584,11 +469,11 @@ function Toggle({ checked, onChange }) {
 
 function LegendDot({ color, label, checked }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 5, color: COLORS.textSecondary }}>
+    <div style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: 5, color: COLORS.textSecondary }}>
       <span
         style={{
           width: 11, height: 11, borderRadius: 3, border: `1.5px solid ${color}`,
-          background: checked ? color : "transparent", display: "flex", alignItems: "center", justifyContent: "center",
+          background: checked ? color : "transparent", display: "flex", alignItems: "center", cursor: "pointer", justifyContent: "center",
         }}
       />
       {label}
