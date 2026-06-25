@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from "../components/Toast";
 import { COLORS } from "../theme";
 import { TIMELINE, ALERT_DETAILS, ALERT_HISTORY, REGION_INFO } from "../data/alertsData";
+import { getAlertsData } from "../services/alertService";
 
 /* ================================================================
    SolarGuard – Alerts Page (High Fidelity & Fully Responsive)
@@ -242,6 +243,34 @@ export default function SolarAlerts() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const [apiData, setApiData] = useState({
+    timeline: TIMELINE,
+    alertDetails: ALERT_DETAILS,
+    alertHistory: ALERT_HISTORY,
+    regionInfo: REGION_INFO
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchAlerts = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await getAlertsData();
+      setApiData(data);
+    } catch (err) {
+      setError(err.message || "Failed to load alerts data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAlerts();
+  }, []);
+
+  const { timeline, alertDetails, alertHistory, regionInfo } = apiData;
+
   return (
     <>
       <style>{styles}</style>
@@ -259,7 +288,13 @@ export default function SolarAlerts() {
         <Sidebar activePage="Alerts" />
 
       <main className="sg-main">
-          
+          {error && (
+            <div style={{ margin: "16px 0 0", background: "rgba(239,68,68,0.15)", border: `1px solid #ef4444`, padding: "10px 14px", borderRadius: 8, color: "#f87171", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 13, fontWeight: 500 }}>Failed to sync live data: {error}</span>
+              <button onClick={fetchAlerts} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 14px", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>Retry Connection</button>
+            </div>
+          )}
+          <div style={{ opacity: isLoading ? 0.6 : 1, transition: "opacity 0.2s" }}>
           <header className="sg-header">
             <div style={{ display:'flex', alignItems:'center', gap:16 }}>
               <button className="sg-mobile-toggle" onClick={() => setSidebarOpen(true)}>
@@ -334,12 +369,12 @@ export default function SolarAlerts() {
             <div className="sg-panel">
               <div className="sg-p-hdr">Alert Timeline (Today)</div>
               <div className="sg-p-body">
-                {TIMELINE.map((t,i) => (
+                {timeline.map((t,i) => (
                   <div key={i} className="sg-tl-item">
                     <div className="sg-tl-time">{t.time}</div>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', position:'relative', zIndex:1 }}>
                       <div style={{ width:10, height:10, borderRadius:'50%', background: !t.past ? '#0d1322' : t.col, border:`2px solid ${t.col}`, zIndex:2, marginTop:4 }} />
-                      {i !== TIMELINE.length - 1 && <div style={{ position:'absolute', top:14, bottom:-4, width:2, background:t.past?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.05)', zIndex:1 }} />}
+                      {i !== timeline.length - 1 && <div style={{ position:'absolute', top:14, bottom:-4, width:2, background:t.past?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.05)', zIndex:1 }} />}
                     </div>
                     <div style={{ flex:1, paddingTop:2 }}>
                       <div style={{ fontSize:'.8rem', fontWeight:600, color:t.col, marginBottom:4 }}>{t.title}</div>
@@ -364,8 +399,8 @@ export default function SolarAlerts() {
             <div className="sg-panel sg-panel-details">
               <div className="sg-p-hdr">Alert Details</div>
               <div className="sg-p-body" style={{ padding: '16px 20px' }}>
-                {ALERT_DETAILS.map((d,i) => (
-                  <div key={i} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom: i===ALERT_DETAILS.length-1 ? 'none' : '1px solid rgba(255,255,255,0.02)' }}>
+                {alertDetails.map((d,i) => (
+                  <div key={i} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom: i===alertDetails.length-1 ? 'none' : '1px solid rgba(255,255,255,0.02)' }}>
                     <span style={{ fontSize:'.75rem', color:'#8892a6' }}>{d.lbl}</span>
                     {d.badge ? (
                       <span style={{ padding:'2px 8px', background:`${d.badge}20`, color:d.badge, borderRadius:4, fontSize:'.7rem', border:`1px solid ${d.badge}40` }}>{d.val}</span>
@@ -396,7 +431,7 @@ export default function SolarAlerts() {
                     </tr>
                   </thead>
                   <tbody>
-                    {ALERT_HISTORY.map((h,i) => (
+                    {alertHistory.map((h,i) => (
                       <tr key={i}>
                         <td>{h.t}</td>
                         <td style={{ color:h.tyC, fontWeight:500 }}>{h.ty}</td>
@@ -429,7 +464,7 @@ export default function SolarAlerts() {
                     </div>
                   </div>
                   <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center' }}>
-                    {REGION_INFO.map((r,i) => (
+                    {regionInfo.map((r,i) => (
                       <div key={i} style={{ marginBottom:10 }}>
                         <div style={{ fontSize:'.65rem', color:'#8892a6', marginBottom:2 }}>{r.l}</div>
                         <div style={{ fontSize:'.75rem', color:r.vc, fontWeight:600 }}>{r.v}</div>
@@ -464,6 +499,7 @@ export default function SolarAlerts() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
 
         </main>

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { COLORS as THEME_COLORS, PAGE_STYLE, MAIN_STYLE, FONT } from "../theme";
 import { SIMILAR_EVENTS } from "../data/dashboardData";
+import { getDashboardData } from "../services/dashboardService";
 
 /* ────────────────────────────────────────────────────────────────────────
    SolarGuard — ISRO BAH 2026 dashboard
@@ -195,11 +196,32 @@ function CustomTooltip({ active, payload, label, unit }) {
 
 export default function SolarGuardDashboard() {
   const navigate = useNavigate();
-    const [date, setDate] = useState("2026-06-03");
+  const [date, setDate] = useState("2026-06-03");
   const [time, setTime] = useState("12:45:30");
   const [tick, setTick] = useState(0);
   const [isLive, setIsLive] = useState(true);
   const intervalRef = useRef(null);
+
+  const [apiData, setApiData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchDashboard = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await getDashboardData();
+      setApiData(data);
+    } catch (err) {
+      setError(err.message || "Failed to load dashboard data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
 
   useEffect(() => {
     if (!isLive) return;
@@ -246,9 +268,13 @@ export default function SolarGuardDashboard() {
     [timeLabels]
   );
 
-  const currentProb = 44.7;
-  const currentRatio = hardeningData[Math.floor(hardeningData.length * 0.62)]?.ratio.toFixed(3) || "1.014";
+  const currentProb = apiData?.forecast_probability ?? 44.7;
+  const currentRatio = apiData?.hardening_index?.toFixed(3) ?? (hardeningData[Math.floor(hardeningData.length * 0.62)]?.ratio.toFixed(3) || "1.014");
   const zScore = 0.73;
+  const missionStatus = apiData?.mission_status ?? "GOES-16 Active";
+  const systemStatus = apiData?.current_solar_status ?? "Normal";
+  const lastUpdate = apiData?.last_update_time ?? "2026-06-03 12:45:30 IST";
+  const activeAlert = apiData?.active_alert ?? false;
 
   return (
     <div style={PAGE_STYLE}>
@@ -256,8 +282,15 @@ export default function SolarGuardDashboard() {
       <Sidebar activePage="Dashboard" />
 
       <main style={{ ...MAIN_STYLE, padding: "20px 24px", gap: 16, display: "flex", flexDirection: "column" }}>
+        {error && (
+          <div style={{ background: COLORS.accentRed + "22", border: `1px solid ${COLORS.accentRed}`, padding: "10px 14px", borderRadius: 8, color: COLORS.accentRed, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 500 }}>Failed to sync live data: {error}</span>
+            <button onClick={fetchDashboard} style={{ background: COLORS.accentRed, color: "#fff", border: "none", padding: "6px 14px", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>Retry Connection</button>
+          </div>
+        )}
+        
         {/* Top bar */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, opacity: isLoading ? 0.6 : 1, transition: "opacity 0.2s" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
             <FieldPicker icon={Calendar} label="Selected Date" value={date} type="date" onChange={setDate} />
             <FieldPicker icon={Clock} label="Time (IST)" value={time} type="time" onChange={setTime} />
@@ -284,7 +317,7 @@ export default function SolarGuardDashboard() {
               <div style={{ fontSize: 11, color: COLORS.textSecondary, marginBottom: 2 }}>System Status</div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
                 <span style={{ width: 7, height: 7, borderRadius: 99, background: COLORS.accentGreen }} />
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: COLORS.accentGreen }}>Normal</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: COLORS.accentGreen }}>{systemStatus}</span>
               </div>
             </div>
           </div>
@@ -420,7 +453,7 @@ export default function SolarGuardDashboard() {
             </table>
           </Panel>
 
-          <AlertCard prob={currentProb} cls="M-Class" leadMin={10} updated="2026-06-03 12:45:30 IST" />
+          <AlertCard prob={currentProb} cls={activeAlert ? "M-Class" : "None"} leadMin={10} updated={lastUpdate} />
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: COLORS.textMuted, padding: "2px 2px 0" }}>

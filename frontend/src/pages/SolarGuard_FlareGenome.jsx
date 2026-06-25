@@ -7,6 +7,7 @@ import {
   seededRand, HEATMAP_DATA, LABELS, SELECTED, TOP_MATCH, 
   ROWS, EVENTS, CONTRIBS 
 } from "../data/genomeData";
+import { getGenomeData } from "../services/genomeService";
 
 // ── Colour helpers ────────────────────────────────────────────────────────────
 function colorAt(v) {
@@ -26,21 +27,21 @@ function toRgb(arr) { return `rgb(${arr[0]},${arr[1]},${arr[2]})`; }
 
 
 // ── Heatmap canvas ────────────────────────────────────────────────────────────
-function Heatmap() {
+function Heatmap({ data }) {
   const canvasRef = useRef(null);
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !data) return;
     const ctx = canvas.getContext("2d");
     const W = canvas.width, H = canvas.height;
     const cw = W / 64, ch = H / 8;
-    HEATMAP_DATA.forEach((row, r) => {
+    data.forEach((row, r) => {
       row.forEach((v, c) => {
         ctx.fillStyle = toRgb(colorAt(v));
         ctx.fillRect(c * cw, r * ch, cw + 0.5, ch + 0.5);
       });
     });
-  }, []);
+  }, [data]);
   return <canvas ref={canvasRef} width={660} height={200} style={{ width: "100%", display: "block" }} />;
 }
 
@@ -64,7 +65,7 @@ function Colorbar() {
 }
 
 // ── Radar chart canvas — precise glow, fully responsive, DPR-aware ───────────
-function RadarChart() {
+function RadarChart({ topMatch, selected, labels }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -221,12 +222,13 @@ function RadarChart() {
     }
 
     // draw top-match behind, selected on top
-    drawPoly(TOP_MATCH, "#f59e0b", true);
-    drawPoly(SELECTED,  "#22d3ee", false);
+    if (topMatch) drawPoly(topMatch, "#f59e0b", true);
+    if (selected) drawPoly(selected,  "#22d3ee", false);
 
     // ── axis labels ──────────────────────────────────────────────────────────
     const labelGap = maxR * 0.30;
-    LABELS.forEach((lines, i) => {
+    if (labels) {
+      labels.forEach((lines, i) => {
       const a  = angle(i);
       const lx = cx + (maxR + labelGap) * Math.cos(a);
       const ly = cy + (maxR + labelGap) * Math.sin(a);
@@ -242,13 +244,10 @@ function RadarChart() {
         ctx.fillText(line, lx, ly + offsetY);
       });
     });
+    }
   }
 
   useEffect(() => {
-    const canvas = canvas => {
-      if (!canvas) return;
-      drawRadar(canvas);
-    };
     // initial draw
     drawRadar(canvasRef.current);
 
@@ -256,7 +255,7 @@ function RadarChart() {
     const ro = new ResizeObserver(() => drawRadar(canvasRef.current));
     if (containerRef.current) ro.observe(containerRef.current);
     return () => ro.disconnect();
-  }, []);
+  }, [topMatch, selected, labels]);
 
   return (
     <div ref={containerRef} style={{ width: "100%", aspectRatio: "1 / 0.9" }}>
@@ -370,6 +369,37 @@ export default function FlareGenomeDashboard() {
   const [activeTab, setActiveTab] = useState("Genome View");
   const tabs = ["Genome View", "Similarity Matches", "PCA Projection", "Distribution", "Statistics"];
 
+  const [apiData, setApiData] = useState({
+    heatmapData: HEATMAP_DATA,
+    labels: LABELS,
+    selected: SELECTED,
+    topMatch: TOP_MATCH,
+    rows: ROWS,
+    events: EVENTS,
+    contribs: CONTRIBS,
+    latentVector: [],
+    flareGenome: "Loading Genome..."
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchGenome = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await getGenomeData();
+      setApiData(data);
+    } catch (err) {
+      setError(err.message || "Failed to load genome data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGenome();
+  }, []);
+
   return (
     <div style={S.app}>
       {/* ── Sidebar ── */}
@@ -377,8 +407,14 @@ export default function FlareGenomeDashboard() {
 
       {/* ── Main ── */}
       <div style={S.main}>
+        {error && (
+          <div style={{ margin: "16px 20px 0", background: "rgba(239,68,68,0.15)", border: `1px solid #ef4444`, padding: "10px 14px", borderRadius: 8, color: "#f87171", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 500 }}>Failed to sync live data: {error}</span>
+            <button onClick={fetchGenome} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 14px", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>Retry Connection</button>
+          </div>
+        )}
         {/* Topbar */}
-        <div style={S.topbar}>
+        <div style={{ ...S.topbar, opacity: isLoading ? 0.6 : 1, transition: "opacity 0.2s" }}>
           <div>
             <div style={{ fontSize: 20, fontWeight: 700, color: "#f1f5f9", marginBottom: 2 }}>Flare Genome</div>
             <div style={{ fontSize: 12, color: "#64748b" }}>64-D Spectral Fingerprint of Solar Flare Event</div>
@@ -398,7 +434,7 @@ export default function FlareGenomeDashboard() {
         </div>
 
         {/* Content */}
-        <div style={S.content}>
+        <div style={{ ...S.content, opacity: isLoading ? 0.6 : 1, transition: "opacity 0.2s" }}>
           <div style={S.center}>
             {activeTab === "Genome View" ? (
               <>
@@ -423,7 +459,7 @@ export default function FlareGenomeDashboard() {
                     <div style={{ position: "relative" }}>
                       <span style={{ position: "absolute", left: -8, top: "50%", transform: "translateY(-50%) rotate(-90deg)", fontSize: 10, color: "#64748b", whiteSpace: "nowrap", transformOrigin: "center", pointerEvents: "none" }}>Feature Group</span>
                     </div>
-                    {ROWS.map((r) => (
+                    {apiData.rows.map((r) => (
                       <div key={r} style={{ fontSize: 10, color: "#64748b", textAlign: "right", paddingRight: 6 }}>{r}</div>
                     ))}
                   </div>
@@ -433,7 +469,7 @@ export default function FlareGenomeDashboard() {
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#64748b", padding: "0 2px", marginBottom: 2 }}>
                       {[1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 64].map((n) => <span key={n}>{n}</span>)}
                     </div>
-                    <Heatmap />
+                    <Heatmap data={apiData.heatmapData} />
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, marginTop: 8 }}>
                       <Colorbar />
                       <div style={{ display: "flex", justifyContent: "space-between", width: 300, fontSize: 10, color: "#64748b" }}>
@@ -465,7 +501,7 @@ export default function FlareGenomeDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {EVENTS.map((ev) => (
+                      {apiData.events.map((ev) => (
                         <tr key={ev.rank} style={{ borderBottom: "1px solid #0e1420" }}>
                           <td style={{ padding: "6px 8px", color: "#94a3b8" }}>{ev.rank}</td>
                           <td style={{ padding: "6px 8px", color: "#94a3b8", whiteSpace: "nowrap" }}>{ev.id}</td>
@@ -510,7 +546,7 @@ export default function FlareGenomeDashboard() {
                     Top Match (EVT-2024-06-18-122200)
                   </span>
                 </div>
-                <RadarChart />
+                <RadarChart topMatch={apiData.topMatch} selected={apiData.selected} labels={apiData.labels} />
               </div>
             </div>
 
@@ -596,7 +632,7 @@ export default function FlareGenomeDashboard() {
               <div style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0", marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
                 Feature Group Contribution <span style={S.infoDot}>i</span>
               </div>
-              {CONTRIBS.map((c) => (
+              {apiData.contribs.map((c) => (
                 <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
                   <span style={{ fontSize: 11, color: "#94a3b8", width: 112, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label}</span>
                   <div style={{ flex: 1, height: 6, background: "#1e2535", borderRadius: 3, overflow: "hidden" }}>

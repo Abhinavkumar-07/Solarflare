@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Sidebar from "../components/Sidebar";
 import { toast } from "../components/Toast";
 import { STATS, TABLE_ROWS, ACTIVITIES } from "../data/memoryData";
+import { getMemoryData } from "../services/memoryService";
 
 /* ================================================================
    SolarGuard – Solar Memory Database Page
@@ -389,11 +390,38 @@ export default function SolarMemoryDB() {
 
   const sliderBg = `linear-gradient(90deg,#22d3ee 0%,#22d3ee ${sliderVal}%,#1a2540 ${sliderVal}%,#1a2540 100%)`;
 
+  const [apiData, setApiData] = useState({
+    stats: STATS,
+    tableRows: TABLE_ROWS,
+    activities: ACTIVITIES
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchMemory = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await getMemoryData();
+      setApiData(data);
+    } catch (err) {
+      setError(err.message || "Failed to load memory data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMemory();
+  }, []);
+
+  const { stats, tableRows, activities } = apiData;
+
   // Compute filtered rows based on search query and class filter
-  const filteredRows = TABLE_ROWS.filter(row => {
+  const filteredRows = tableRows.filter(row => {
     const q = searchQuery.toLowerCase();
     const matchQuery = !q || row.id.toLowerCase().includes(q) || row.date.toLowerCase().includes(q) || row.cls.toLowerCase().includes(q);
-    const matchClass = filterClass === "All Classes" || filterClass === "Current Event (Live)" || filterClass === "Class" || row.clsType.toLowerCase() === filterClass.charAt(0).toLowerCase();
+    const matchClass = filterClass === "All Classes" || filterClass === "Current Event (Live)" || filterClass === "Class" || row.clsType?.toLowerCase() === filterClass.charAt(0).toLowerCase();
     return matchQuery && matchClass;
   });
 
@@ -403,8 +431,15 @@ export default function SolarMemoryDB() {
       <Sidebar activePage="Solar Memory DB" />
 
       <main className="sg-main" style={S.main}>
-        {/* Header */}
-        <header className="sg-header" style={S.header}>
+        {error && (
+          <div style={{ margin: "16px 0 0", background: "rgba(239,68,68,0.15)", border: `1px solid #ef4444`, padding: "10px 14px", borderRadius: 8, color: "#f87171", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 500 }}>Failed to sync live data: {error}</span>
+            <button onClick={fetchMemory} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 14px", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>Retry Connection</button>
+          </div>
+        )}
+        <div style={{ opacity: isLoading ? 0.6 : 1, transition: "opacity 0.2s" }}>
+          {/* Header */}
+          <header className="sg-header" style={S.header}>
           <div>
             <h1 style={S.pageTitle}>Solar Memory Database</h1>
             <p style={S.pageSub}>Historical solar flare events stored as 64-D flare genomes</p>
@@ -419,7 +454,7 @@ export default function SolarMemoryDB() {
 
         {/* Stats Row */}
         <section className="sg-stats-row" style={S.statsRow}>
-          {STATS.map((s,i) => (
+          {stats.map((s,i) => (
             <div key={i} style={S.statCard}>
               <div style={{...S.statBar, background:s.grad}} />
               <div style={{...S.statIcon, background:s.bg, color:s.color}}>
@@ -623,7 +658,7 @@ export default function SolarMemoryDB() {
           <div style={{...S.panel, display:'flex', flexDirection:'column'}}>
             <div style={S.panelHdr}><h3 style={S.panelTitle}>Recent Database Activities</h3></div>
             <div style={S.actList}>
-              {ACTIVITIES.map((a,i) => (
+              {activities.map((a,i) => (
                 <div key={i} style={S.actRow}>
                   <span style={S.actTime}>{a.time}</span>
                   <span style={S.actAction}>{a.action}</span>
@@ -636,6 +671,7 @@ export default function SolarMemoryDB() {
             </div>
           </div>
         </section>
+        </div>
       </main>
     </div>
   );

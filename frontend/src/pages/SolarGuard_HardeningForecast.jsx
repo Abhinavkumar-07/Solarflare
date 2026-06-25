@@ -276,7 +276,6 @@ export default function HardeningForecast() {
   const [activeRange, setActiveRange] = useState("3 hr");
   const navigate = useNavigate();
 
-  // State for service data (initialized with synchronous data to prevent UI flashing)
   const [data, setData] = useState({
     hardeningData: syncHardening,
     energyData: syncEnergy,
@@ -285,11 +284,24 @@ export default function HardeningForecast() {
     keyIndicators: syncIndicators,
     features: syncFeatures
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchForecast = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const fetchedData = await forecastService.getForecastData();
+      setData(fetchedData);
+    } catch (err) {
+      setError(err.message || "Failed to load forecast data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    forecastService.getForecastData().then(fetchedData => {
-      setData(fetchedData);
-    });
+    fetchForecast();
   }, []);
 
   const { hardeningData, energyData, timeTicks, latestForecasts, keyIndicators, features } = data;
@@ -302,8 +314,15 @@ export default function HardeningForecast() {
 
       {/* ----------------------------- Main ------------------------------ */}
       <div style={{ ...MAIN_STYLE }}>
+        {error && (
+          <div style={{ margin: "20px 32px 0", background: "rgba(239,68,68,0.15)", border: `1px solid #ef4444`, padding: "10px 14px", borderRadius: 8, color: "#f87171", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 500 }}>Failed to sync live data: {error}</span>
+            <button onClick={fetchForecast} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 14px", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>Retry Connection</button>
+          </div>
+        )}
+        
         {/* Header */}
-        <header className="flex items-start justify-between px-8 pt-6">
+        <header className="flex items-start justify-between px-8 pt-6" style={{ opacity: isLoading ? 0.6 : 1, transition: "opacity 0.2s" }}>
           <div>
             <h2 className="text-2xl font-bold text-white">Hardening &amp; Forecast</h2>
             <p className="text-slate-500" style={{ fontSize: 13, marginTop: 4 }}>
@@ -352,7 +371,7 @@ export default function HardeningForecast() {
           </button>
         </div>
 
-        <div className="space-y-4 px-8 py-5">
+        <div className="space-y-4 px-8 py-5" style={{ opacity: isLoading ? 0.6 : 1, transition: "opacity 0.2s" }}>
           {/* ----------------------- KPI row ----------------------- */}
           <div className="sg-grid-5" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
             <KpiCard

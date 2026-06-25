@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from "../components/Toast";
 import { COLORS as THEME_COLORS, FONT } from '../theme';
 import { METRICS, CONFUSION_MATRIX, cellColor } from "../data/reportsData";
+import { getReportsData } from "../services/reportService";
 
 let ChartJS = null;
 
@@ -320,12 +321,47 @@ const S = {
 
 export default function SolarReports() {
   const navigate = useNavigate();
+
+  const [apiData, setApiData] = useState({
+    metrics: METRICS,
+    confusionMatrix: CONFUSION_MATRIX,
+    cellColor: cellColor
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchReports = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await getReportsData();
+      setApiData(data);
+    } catch (err) {
+      setError(err.message || "Failed to load reports data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const { metrics, confusionMatrix } = apiData;
+
   return (
     <div style={S.app}>
       {/* ──── Sidebar ──── */}
       <Sidebar activePage="Reports" />
 
       <main style={S.main}>
+        {error && (
+          <div style={{ margin: "16px 0 0", background: "rgba(239,68,68,0.15)", border: `1px solid #ef4444`, padding: "10px 14px", borderRadius: 8, color: "#f87171", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 500 }}>Failed to sync live data: {error}</span>
+            <button onClick={fetchReports} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 14px", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>Retry Connection</button>
+          </div>
+        )}
+        <div style={{ opacity: isLoading ? 0.6 : 1, transition: "opacity 0.2s" }}>
         <header style={S.header}>
           <div>
             <h1 style={S.pageTitle}>Reports &amp; Analytics</h1>
@@ -344,7 +380,7 @@ export default function SolarReports() {
 
         {/* Top Metrics Grid */}
         <div className="sg-grid-6" style={S.metricsGrid}>
-          {METRICS.map((m,i) => (
+          {metrics.map((m,i) => (
             <div key={i} style={S.metricCard}>
               <div style={S.mTitle}>{m.title}</div>
               <div style={S.mBody}>
@@ -496,11 +532,11 @@ export default function SolarReports() {
                   </tr>
                 </thead>
                 <tbody>
-                  {CONFUSION_MATRIX.map((row, i) => (
+                  {confusionMatrix.map((row, i) => (
                     <tr key={i}>
                       <td style={{...S.cTd, textAlign:'left', fontWeight:600, color: row.act==='Total'?C.textWhite:['#3b82f6','#fbbf24','#f59e0b','#ef4444'][i] || C.textWhite, border: 'none'}}>{row.act}</td>
                       {['B','C','M','X'].map(p => (
-                        <td key={p} style={{...S.cTd, background: cellColor(row.act, p, row.pred[p]), border: row.act==='Total'?'none':S.cTd.border}}>
+                        <td key={p} style={{...S.cTd, background: apiData.cellColor(row.act, p, row.pred[p]), border: row.act==='Total'?'none':S.cTd.border}}>
                           {row.pred[p]}
                         </td>
                       ))}
@@ -534,11 +570,11 @@ export default function SolarReports() {
           </div>
         </div>
 
-        {/* Footer */}
         <div style={{display:'flex',justifyContent:'space-between',fontSize:'.7rem',color:C.textMuted,marginTop:20}}>
           <span/>
           <span>SolarGuard © 2025</span>
           <span>Built for ISRO Hackathon 2025</span>
+        </div>
         </div>
       </main>
     </div>
