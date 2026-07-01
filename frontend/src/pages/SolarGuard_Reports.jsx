@@ -536,7 +536,7 @@ export default function SolarReports() {
                     <tr key={i}>
                       <td style={{...S.cTd, textAlign:'left', fontWeight:600, color: row.act==='Total'?C.textWhite:['#3b82f6','#fbbf24','#f59e0b','#ef4444'][i] || C.textWhite, border: 'none'}}>{row.act}</td>
                       {['B','C','M','X'].map(p => (
-                        <td key={p} style={{...S.cTd, background: apiData.cellColor(row.act, p, row.pred[p]), border: row.act==='Total'?'none':S.cTd.border}}>
+                        <td key={p} style={{...S.cTd, background: cellColor(row.act, p, row.pred[p]), border: row.act==='Total'?'none':S.cTd.border}}>
                           {row.pred[p]}
                         </td>
                       ))}

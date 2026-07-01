@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import { useNavigate } from "react-router-dom";
 import { toast } from "../components/Toast";
@@ -48,6 +48,7 @@ import {
   features as syncFeatures 
 } from "../data/forecastData";
 import forecastService from "../services/forecastService";
+import ExplainPanel from "../components/explain/ExplainPanel";
 
 /* --------------------------------------------------------------------- */
 /* synthetic time-series data                                            */
@@ -670,6 +671,11 @@ export default function HardeningForecast() {
               </button>
             </CardShell>
           </div>
+        </div>
+
+        {/* Intelligence Engine Panel */}
+        <div className="px-8 mt-2 mb-4" style={{ height: 400 }}>
+          <ExplainPanel />
         </div>
 
         {/* Footer */}

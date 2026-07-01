@@ -6,13 +6,6 @@ export const STATS = [
   { label: 'Storage Size',       value: '28.6 MB',     sub: 'FAISS Index',       icon: 'fas fa-hdd',            color: '#fb923c', bg: 'rgba(245,158,11,.15)', grad: 'linear-gradient(90deg,#f59e0b,#fcd34d)' },
 ];
 
-export const TABLE_ROWS = [
-  { rank: 1, id: 'EVT-2024-06-18-122200', date: '2024-06-18 12:22:00', cls: 'C2.4', clsType: 'c', score: 0.92, anomaly: '0.15', lead: '12 min' },
-  { rank: 2, id: 'EVT-2024-06-18-110200', date: '2024-06-18 11:02:00', cls: 'C1.8', clsType: 'c', score: 0.88, anomaly: '0.21', lead: '9 min' },
-  { rank: 3, id: 'EVT-2024-06-03-094100', date: '2024-06-03 09:41:00', cls: 'C3.1', clsType: 'c', score: 0.84, anomaly: '0.17', lead: '14 min' },
-  { rank: 4, id: 'EVT-2024-06-03-101500', date: '2024-06-03 10:15:00', cls: 'B9.7', clsType: 'b', score: 0.79, anomaly: '0.24', lead: '8 min' },
-  { rank: 5, id: 'EVT-2024-05-22-085000', date: '2024-05-22 08:50:00', cls: 'B7.5', clsType: 'b', score: 0.74, anomaly: '0.28', lead: '11 min' },
-];
 
 export const ACTIVITIES = [
   { time: '2024-09-02 12:45:30', action: 'Added new event',  detail: 'QRY-2024-09-02-121530', mono: true },

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Sidebar from "../components/Sidebar";
 import { toast } from "../components/Toast";
-import { STATS, TABLE_ROWS, ACTIVITIES } from "../data/memoryData";
+import { STATS, ACTIVITIES } from "../data/memoryData";
 import { getMemoryData } from "../services/memoryService";
 
 /* ================================================================
@@ -392,7 +392,7 @@ export default function SolarMemoryDB() {
 
   const [apiData, setApiData] = useState({
     stats: STATS,
-    tableRows: TABLE_ROWS,
+    tableRows: [],
     activities: ACTIVITIES
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -544,7 +544,7 @@ export default function SolarMemoryDB() {
               <table style={S.table}>
                 <thead>
                   <tr>
-                    {['Rank','Event ID','Date & Time (IST)','Class','Similarity Score','Anomaly Score','Lead Time','View'].map((h,i) => (
+                    {['Similarity Rank','Historical Event','Observation Time','GOES Class','Similarity %','Peak Flux','Distance','View'].map((h,i) => (
                       <th key={i} style={S.th}>{h}</th>
                     ))}
                   </tr>
@@ -558,12 +558,12 @@ export default function SolarMemoryDB() {
                       <td style={S.td}><span style={S.classBadgeSmall(r.clsType)}>{r.cls}</span></td>
                       <td style={S.td}>
                         <div style={S.scoreBarC}>
-                          <span style={S.scoreVal}>{r.score.toFixed(2)}</span>
+                          <span style={S.scoreVal}>{(r.score * 100).toFixed(1)}%</span>
                           <div style={S.scoreBar}><div style={S.scoreFill(r.score*100)}/></div>
                         </div>
                       </td>
-                      <td style={S.td}>{r.anomaly}</td>
-                      <td style={S.td}>{r.lead}</td>
+                      <td style={S.td}>{r.peak_flux ? r.peak_flux.toExponential(2) : "0.00e+0"}</td>
+                      <td style={S.td}>{r.distance}</td>
                       <td style={S.td}>
                         <button style={S.btnView(selectedRank===i)} onClick={() => setSelectedRank(i)}>
                           <i className="fas fa-eye"/>
@@ -594,11 +594,10 @@ export default function SolarMemoryDB() {
                 ['Date & Time (IST)', filteredRows[selectedRank]?.date || ''],
                 ['Class',           <span key="sc" style={S.classBadge(filteredRows[selectedRank]?.clsType)}>{filteredRows[selectedRank]?.cls || ''}</span>],
                 ['Peak Time',       '12:28:30'],
-                ['Peak Flux (Soft)',<span key="pfs">1.18 × 10<sup style={{fontSize:'.55rem'}}>-5</sup> cts/s</span>],
-                ['Peak Flux (Hard)',<span key="pfh">2.31 × 10<sup style={{fontSize:'.55rem'}}>-5</sup> cts/s</span>],
+                ['Peak Flux (Soft)',<span key="pfs">{filteredRows[selectedRank]?.peak_flux ? filteredRows[selectedRank].peak_flux.toExponential(2) : "0.00e+0"} W/m²</span>],
                 ['Hardening Ratio', '1.12'],
-                ['Anomaly Score',   <span key="asm" style={S.highlightY}>{filteredRows[selectedRank]?.anomaly || ''}</span>],
-                ['Lead Time (Actual)', filteredRows[selectedRank]?.lead || ''],
+                ['Distance',   <span key="asm" style={S.highlightY}>{filteredRows[selectedRank]?.distance || ''}</span>],
+                ['Lead Time (Actual)', '10 min'],
               ].map(([l,v],i) => (
                 <div key={i} style={S.detailRow}>
                   <span style={S.detailLbl}>{l}</span>

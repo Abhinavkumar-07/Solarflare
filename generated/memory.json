@@ -1,0 +1,346 @@
+{
+  "nearest_historical_events": [
+    {
+      "rank": 1,
+      "event_id": "EVT-WIN-371",
+      "goes_class": "M2.4",
+      "timestamp": "2026-06-03 07:00:27+00:00",
+      "similarity_score": 0.7944614291191101,
+      "peak_flux": 5343.0
+    },
+    {
+      "rank": 2,
+      "event_id": "EVT-WIN-424",
+      "goes_class": "M2.4",
+      "timestamp": "2026-06-03 11:25:29+00:00",
+      "similarity_score": 0.7856476306915283,
+      "peak_flux": 5014.0
+    },
+    {
+      "rank": 3,
+      "event_id": "EVT-WIN-305",
+      "goes_class": "M2.4",
+      "timestamp": "2026-06-03 01:30:27+00:00",
+      "similarity_score": 0.7629398107528687,
+      "peak_flux": 3019.0
+    },
+    {
+      "rank": 4,
+      "event_id": "EVT-WIN-613",
+      "goes_class": "B2.0",
+      "timestamp": "2026-06-18 03:10:17+00:00",
+      "similarity_score": 0.6870206594467163,
+      "peak_flux": 9.0
+    },
+    {
+      "rank": 5,
+      "event_id": "EVT-WIN-657",
+      "goes_class": "B2.0",
+      "timestamp": "2026-06-18 06:47:24+00:00",
+      "similarity_score": 0.6701446771621704,
+      "peak_flux": 10.0
+    }
+  ],
+  "historical_flare_metadata": [
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 176.0,
+      "timestamp": "2024-09-02 00:01:54+00:00",
+      "window_idx": 0
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 173.0,
+      "timestamp": "2024-09-02 00:09:20+00:00",
+      "window_idx": 1
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 162.0,
+      "timestamp": "2024-09-02 00:11:37+00:00",
+      "window_idx": 2
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 165.0,
+      "timestamp": "2024-09-02 00:16:51+00:00",
+      "window_idx": 3
+    },
+    {
+      "goes_class": "C3.5",
+      "peak_flux": 201.0,
+      "timestamp": "2024-09-02 00:24:24+00:00",
+      "window_idx": 4
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 180.0,
+      "timestamp": "2024-09-02 00:25:53+00:00",
+      "window_idx": 5
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 169.0,
+      "timestamp": "2024-09-02 00:30:06+00:00",
+      "window_idx": 6
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 165.0,
+      "timestamp": "2024-09-02 00:39:04+00:00",
+      "window_idx": 7
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 170.0,
+      "timestamp": "2024-09-02 00:45:02+00:00",
+      "window_idx": 8
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 173.0,
+      "timestamp": "2024-09-02 00:46:11+00:00",
+      "window_idx": 9
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 160.0,
+      "timestamp": "2024-09-02 00:50:28+00:00",
+      "window_idx": 10
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 160.0,
+      "timestamp": "2024-09-02 00:57:10+00:00",
+      "window_idx": 11
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 169.0,
+      "timestamp": "2024-09-02 01:01:02+00:00",
+      "window_idx": 12
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 177.0,
+      "timestamp": "2024-09-02 01:09:21+00:00",
+      "window_idx": 13
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 186.0,
+      "timestamp": "2024-09-02 01:10:27+00:00",
+      "window_idx": 14
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 178.0,
+      "timestamp": "2024-09-02 01:18:13+00:00",
+      "window_idx": 15
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 165.0,
+      "timestamp": "2024-09-02 01:21:55+00:00",
+      "window_idx": 16
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 172.0,
+      "timestamp": "2024-09-02 01:27:41+00:00",
+      "window_idx": 17
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 158.0,
+      "timestamp": "2024-09-02 01:32:21+00:00",
+      "window_idx": 18
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 159.0,
+      "timestamp": "2024-09-02 01:35:13+00:00",
+      "window_idx": 19
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 138.0,
+      "timestamp": "2024-09-02 01:40:21+00:00",
+      "window_idx": 20
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 137.0,
+      "timestamp": "2024-09-02 01:46:09+00:00",
+      "window_idx": 21
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 135.0,
+      "timestamp": "2024-09-02 01:50:20+00:00",
+      "window_idx": 22
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 134.0,
+      "timestamp": "2024-09-02 01:58:54+00:00",
+      "window_idx": 23
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 139.0,
+      "timestamp": "2024-09-02 02:04:49+00:00",
+      "window_idx": 24
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 139.0,
+      "timestamp": "2024-09-02 02:06:09+00:00",
+      "window_idx": 25
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 142.0,
+      "timestamp": "2024-09-02 02:13:42+00:00",
+      "window_idx": 26
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 149.0,
+      "timestamp": "2024-09-02 02:16:25+00:00",
+      "window_idx": 27
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 146.0,
+      "timestamp": "2024-09-02 02:20:35+00:00",
+      "window_idx": 28
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 146.0,
+      "timestamp": "2024-09-02 02:27:42+00:00",
+      "window_idx": 29
+    },
+    {
+      "goes_class": "C3.5",
+      "peak_flux": 226.0,
+      "timestamp": "2024-09-02 02:34:26+00:00",
+      "window_idx": 30
+    },
+    {
+      "goes_class": "C3.5",
+      "peak_flux": 225.0,
+      "timestamp": "2024-09-02 02:35:09+00:00",
+      "window_idx": 31
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 186.0,
+      "timestamp": "2024-09-02 02:40:39+00:00",
+      "window_idx": 32
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 175.0,
+      "timestamp": "2024-09-02 02:46:46+00:00",
+      "window_idx": 33
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 161.0,
+      "timestamp": "2024-09-02 02:52:03+00:00",
+      "window_idx": 34
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 159.0,
+      "timestamp": "2024-09-02 02:56:23+00:00",
+      "window_idx": 35
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 161.0,
+      "timestamp": "2024-09-02 03:01:56+00:00",
+      "window_idx": 36
+    },
+    {
+      "goes_class": "C3.5",
+      "peak_flux": 231.0,
+      "timestamp": "2024-09-02 03:09:52+00:00",
+      "window_idx": 37
+    },
+    {
+      "goes_class": "C3.5",
+      "peak_flux": 280.0,
+      "timestamp": "2024-09-02 03:11:45+00:00",
+      "window_idx": 38
+    },
+    {
+      "goes_class": "C3.5",
+      "peak_flux": 279.0,
+      "timestamp": "2024-09-02 03:17:36+00:00",
+      "window_idx": 39
+    },
+    {
+      "goes_class": "C3.5",
+      "peak_flux": 259.0,
+      "timestamp": "2024-09-02 03:20:35+00:00",
+      "window_idx": 40
+    },
+    {
+      "goes_class": "C3.5",
+      "peak_flux": 217.0,
+      "timestamp": "2024-09-02 03:28:30+00:00",
+      "window_idx": 41
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 198.0,
+      "timestamp": "2024-09-02 03:33:01+00:00",
+      "window_idx": 42
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 197.0,
+      "timestamp": "2024-09-02 03:36:38+00:00",
+      "window_idx": 43
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 193.0,
+      "timestamp": "2024-09-02 03:40:26+00:00",
+      "window_idx": 44
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 187.0,
+      "timestamp": "2024-09-02 03:47:15+00:00",
+      "window_idx": 45
+    },
+    {
+      "goes_class": "C3.5",
+      "peak_flux": 210.0,
+      "timestamp": "2024-09-02 03:53:19+00:00",
+      "window_idx": 46
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 192.0,
+      "timestamp": "2024-09-02 03:55:32+00:00",
+      "window_idx": 47
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 184.0,
+      "timestamp": "2024-09-02 04:00:17+00:00",
+      "window_idx": 48
+    },
+    {
+      "goes_class": "B8.0",
+      "peak_flux": 157.0,
+      "timestamp": "2024-09-02 04:09:47+00:00",
+      "window_idx": 49
+    }
+  ]
+}

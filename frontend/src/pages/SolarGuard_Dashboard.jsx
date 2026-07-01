@@ -12,6 +12,7 @@ import {
 import { COLORS as THEME_COLORS, PAGE_STYLE, MAIN_STYLE, FONT } from "../theme";
 import { SIMILAR_EVENTS } from "../data/dashboardData";
 import { getDashboardData } from "../services/dashboardService";
+import ExplainPanel from "../components/explain/ExplainPanel";
 
 /* ────────────────────────────────────────────────────────────────────────
    SolarGuard — ISRO BAH 2026 dashboard
@@ -454,6 +455,11 @@ export default function SolarGuardDashboard() {
           </Panel>
 
           <AlertCard prob={currentProb} cls={activeAlert ? "M-Class" : "None"} leadMin={10} updated={lastUpdate} />
+        </div>
+
+        {/* Intelligence Engine Panel */}
+        <div style={{ height: 400, marginTop: 4 }}>
+          <ExplainPanel />
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: COLORS.textMuted, padding: "2px 2px 0" }}>
